@@ -184,9 +184,23 @@ class SearchEngine:
 
     def _recommend_large(self, description, subjects, style_w, topic_w, top_k, exclude_key, exclude_title_norm, query_audience):
         subjects_text = ("Genres: " + ", ".join(subjects[:6])) if subjects else ""
-        style         = _style_text(description)
-        combined      = description + " " + subjects_text + " " + style
-        vec = self._model.encode(combined, normalize_embeddings=True).astype(np.float32).reshape(1, -1)
+
+        # Twee aparte vectoren gewogen combineren zodat de schuifjes effect hebben
+        topic_vec = self._model.encode(
+            description + " " + subjects_text,
+            normalize_embeddings=True,
+        ).astype(np.float32)
+        style_vec = self._model.encode(
+            _style_text(description),
+            normalize_embeddings=True,
+        ).astype(np.float32)
+
+        total_w      = style_w + topic_w
+        weighted     = (topic_w / total_w) * topic_vec + (style_w / total_w) * style_vec
+        norm         = np.linalg.norm(weighted)
+        if norm > 0:
+            weighted /= norm
+        vec = weighted.reshape(1, -1)
 
         scores, ids = self._index.search(vec, top_k + 40)
 
