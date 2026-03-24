@@ -91,7 +91,25 @@
 .url-input::placeholder { color: #b0c4d4; }
 .url-input:focus { outline: none; border-color: #10466c; background: #fff; }
 .url-input.invalid { border-color: #e74c3c; }
+.url-input.has-clear { padding-right: 40px; }
 .field-error { color: #e74c3c; font-size: 0.78rem; }
+
+/* ── Clear button ── */
+.input-clear {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #b0c4d4;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+.input-clear:hover { color: #4a6a80; }
+.input-clear svg { width: 16px; height: 16px; }
 
 /* ── Divider ── */
 .form-divider {

@@ -58,8 +58,15 @@ export default function InputForm({ onSubmit, loading }) {
             placeholder="https://openlibrary.org/works/..."
             value={url}
             onChange={e => setUrl(e.target.value)}
-            className={`url-input${showError ? ' invalid' : ''}`}
+            className={`url-input${showError ? ' invalid' : ''}${url ? ' has-clear' : ''}`}
           />
+          {url && (
+            <button type="button" className="input-clear" onClick={() => { setUrl(''); inputRef.current?.focus() }} aria-label="Wis URL">
+              <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            </button>
+          )}
         </div>
         {showError && <span className="field-error">Voer een openlibrary.org URL in</span>}
       </div>
