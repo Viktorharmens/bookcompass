@@ -111,6 +111,70 @@
 .input-clear:hover { color: #4a6a80; }
 .input-clear svg { width: 16px; height: 16px; }
 
+/* ── Tag-selectie ── */
+.tag-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #9aacba;
+}
+.tag-loading-spinner {
+  width: 14px; height: 14px;
+  border: 2px solid #d0e0ec;
+  border-top-color: #10466c;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+.subject-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.subject-picker-label {
+  font-size: 0.84rem;
+  color: #4a6a80;
+  line-height: 1.4;
+}
+.subject-picker-label strong { color: #1a2e3e; }
+.subject-picker-hint {
+  font-size: 0.75rem;
+  color: #9aacba;
+}
+.subject-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.subject-tag {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border: 1.5px solid #d0e0ec;
+  background: #fff;
+  color: #4a6a80;
+  transition: all 0.15s;
+}
+.subject-tag:hover {
+  border-color: #10466c;
+  color: #10466c;
+}
+.subject-tag.selected {
+  background: #10466c;
+  border-color: #10466c;
+  color: #fff;
+}
+.subject-picker-count {
+  font-size: 0.75rem;
+  color: #10466c;
+  font-weight: 600;
+}
+
 /* ── Divider ── */
 .form-divider {
   border: none;

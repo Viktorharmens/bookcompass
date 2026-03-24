@@ -167,13 +167,21 @@ class SearchEngine:
         subjects: list[str] | None = None,
         style_weight: float = 3.0,
         topic_weight: float = 3.0,
+        selected_subjects: list[str] | None = None,
         top_k: int = 5,
         exclude_key: str | None = None,
         exclude_title: str | None = None,
     ) -> list[BookResult]:
         subjects           = subjects or []
+        selected_subjects  = selected_subjects or []
         exclude_title_norm = exclude_title.strip().lower() if exclude_title else None
         query_audience     = _audience(subjects)
+
+        # Geselecteerde tags extra zwaar meewegen in de beschrijving
+        if selected_subjects:
+            boosted = "Key themes: " + ", ".join(selected_subjects)
+            description = description + " " + boosted + " " + boosted  # dubbel = hoger gewicht
+
         if self._mode == "large":
             results = self._recommend_large(description, subjects, style_weight, topic_weight, top_k, exclude_key, exclude_title_norm, query_audience)
         else:
