@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 
-const STEPS       = ['Laag', 'Lager', 'Neutraal', 'Hoger', 'Hoog']
+const STEPS       = ['Low', 'Lower', 'Neutral', 'Higher', 'High']
 const EXAMPLE_URL = 'https://openlibrary.org/works/OL1168007W/Nineteen_Eighty-Four'
 const API         = 'http://localhost:8000'
 
@@ -30,7 +30,7 @@ export default function InputForm({ onSubmit, loading }) {
   const [url, setUrl]                       = useState('')
   const [styleWeight, setStyleWeight]       = useState(3)
   const [showStyle, setShowStyle]           = useState(false)
-  const [bookInfo, setBookInfo]             = useState(null)   // { title, subjects, ... }
+  const [bookInfo, setBookInfo]             = useState(null)
   const [selectedSubjects, setSelected]     = useState([])
   const [loadingInfo, setLoadingInfo]       = useState(false)
   const [infoError, setInfoError]           = useState(null)
@@ -58,7 +58,7 @@ export default function InputForm({ onSubmit, loading }) {
       const data = await res.json()
       setBookInfo(data)
     } catch {
-      setInfoError('Kon boekinfo niet ophalen')
+      setInfoError('Could not fetch book info')
     } finally {
       setLoadingInfo(false)
     }
@@ -74,7 +74,6 @@ export default function InputForm({ onSubmit, loading }) {
 
   function handleUrlChange(e) {
     setUrl(e.target.value)
-    // Reset boekinfo als URL verandert
     if (bookInfo) {
       setBookInfo(null)
       setSelected([])
@@ -115,29 +114,28 @@ export default function InputForm({ onSubmit, loading }) {
           {url && (
             <button type="button" className="input-clear"
               onClick={() => { setUrl(''); setBookInfo(null); setSelected([]); lastUrl.current = ''; inputRef.current?.focus() }}
-              aria-label="Wis URL">
+              aria-label="Clear URL">
               <svg viewBox="0 0 20 20" fill="none">
                 <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
               </svg>
             </button>
           )}
         </div>
-        {showError && <span className="field-error">Voer een openlibrary.org URL in</span>}
+        {showError && <span className="field-error">Please enter an openlibrary.org URL</span>}
       </div>
 
-      {/* ── Tag-selectie ── */}
       {loadingInfo && (
         <div className="tag-loading">
           <span className="tag-loading-spinner" />
-          <span>Boekinfo ophalen…</span>
+          <span>Fetching book info…</span>
         </div>
       )}
 
       {bookInfo && bookInfo.subjects.length > 0 && (
         <div className="subject-picker">
           <p className="subject-picker-label">
-            Wat spreekt je aan in <strong>{bookInfo.title}</strong>?
-            <span className="subject-picker-hint"> Klik om te selecteren</span>
+            What appeals to you about <strong>{bookInfo.title}</strong>?
+            <span className="subject-picker-hint"> Click to select</span>
           </p>
           <div className="subject-tags">
             {bookInfo.subjects.map(s => (
@@ -153,7 +151,7 @@ export default function InputForm({ onSubmit, loading }) {
           </div>
           {selectedSubjects.length > 0 && (
             <p className="subject-picker-count">
-              {selectedSubjects.length} thema{selectedSubjects.length !== 1 ? "'s" : ''} geselecteerd
+              {selectedSubjects.length} theme{selectedSubjects.length !== 1 ? 's' : ''} selected
             </p>
           )}
         </div>
@@ -170,25 +168,25 @@ export default function InputForm({ onSubmit, loading }) {
           <circle cx="13" cy="10" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
           <circle cx="7" cy="15" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
         </svg>
-        Schrijfstijl aanpassen
+        Writing style
         <svg className={`toggle-chevron${showStyle ? ' open' : ''}`} viewBox="0 0 20 20" fill="none">
           <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </button>
       {showStyle && (
         <div className="style-panel">
-          <WeightSlider label="Schrijfstijl" value={styleWeight} onChange={setStyleWeight} />
+          <WeightSlider label="Writing style" value={styleWeight} onChange={setStyleWeight} />
         </div>
       )}
 
       <button type="submit" className="submit-btn" disabled={!isValid || loading}>
-        {loading ? 'Zoeken…' : 'Aanbevelingen genereren'}
+        {loading ? 'Searching…' : 'Get recommendations'}
         {!loading && <span className="submit-chevron">›</span>}
       </button>
 
       <p className="example-link">
         <a onClick={() => { setUrl(EXAMPLE_URL); setBookInfo(null); setSelected([]); lastUrl.current = '' }} role="button">
-          Bekijk een voorbeeld →
+          View an example →
         </a>
       </p>
     </form>

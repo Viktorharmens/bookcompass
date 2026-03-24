@@ -39,17 +39,17 @@ export default function App() {
       <main className="app-main">
         <div className="brand">
           <img src={logo} alt="BookCompass" className="brand-logo" />
-          <p className="brand-tagline">Navigeer op gevoel. Vind je volgende boek.</p>
+          <p className="brand-tagline">Navigate by feel. Find your next book.</p>
         </div>
 
         <InputForm onSubmit={handleSubmit} loading={loading} />
 
-        {error && <div className="error-box"><strong>Fout:</strong> {error}</div>}
+        {error && <div className="error-box"><strong>Error:</strong> {error}</div>}
 
         {loading && (
           <div className="loading-card">
             <div className="spinner" />
-            <p>Analyseren en zoeken…</p>
+            <p>Analyzing and searching…</p>
           </div>
         )}
 

@@ -82,13 +82,12 @@ async def health():
 
 @app.post("/book-info", response_model=BookInfoResponse)
 async def get_book_info(req: BookInfoRequest):
-    """Haal boekinfo op zonder aanbevelingen te genereren (voor tag-selectie UI)."""
     try:
         book = await fetch_book(req.url)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Kon Open Library niet bereiken: {e}")
+        raise HTTPException(status_code=502, detail=f"Could not reach Open Library: {e}")
 
     return BookInfoResponse(
         title=book.title,
@@ -105,7 +104,7 @@ async def get_recommendations(req: RecommendRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Kon Open Library niet bereiken: {e}")
+        raise HTTPException(status_code=502, detail=f"Could not reach Open Library: {e}")
 
     try:
         engine = get_engine()
