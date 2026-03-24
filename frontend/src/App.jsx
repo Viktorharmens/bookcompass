@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import InputForm from './components/InputForm'
 import ResultsList from './components/ResultsList'
+import logo from './assets/logo.png'
 import './App.css'
 
 export default function App() {
@@ -35,12 +36,12 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>Boekaanbeveler</h1>
-        <p className="subtitle">Vind boeken op stijl en thematiek</p>
-      </header>
-
       <main className="app-main">
+        <div className="brand">
+          <img src={logo} alt="BookCompass" className="brand-logo" />
+          <p className="brand-tagline">Navigeer op gevoel. Vind je volgende boek.</p>
+        </div>
+
         <InputForm onSubmit={handleSubmit} loading={loading} />
 
         {error && <div className="error-box"><strong>Fout:</strong> {error}</div>}
@@ -52,21 +53,7 @@ export default function App() {
           </div>
         )}
 
-        {queryBook && (
-          <div className="query-chip">
-            {queryBook.cover_url
-              ? <img src={queryBook.cover_url} alt={queryBook.title} className="query-chip-cover" />
-              : <div className="query-chip-placeholder">📖</div>
-            }
-            <div className="query-chip-text">
-              <p className="query-chip-label">Gezocht op</p>
-              <p className="query-chip-title">{queryBook.title}</p>
-              <p className="query-chip-author">{queryBook.author}</p>
-            </div>
-          </div>
-        )}
-
-        {results && <ResultsList books={results} />}
+        {results && <ResultsList books={results} queryBook={queryBook} />}
       </main>
     </div>
   )

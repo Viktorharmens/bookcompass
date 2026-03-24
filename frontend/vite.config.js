@@ -8,11 +8,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Semantische Boekaanbeveler',
-        short_name: 'Boeken',
+        name: 'BookCompass',
+        short_name: 'BookCompass',
         description: 'Vind boeken op basis van schrijfstijl en thematiek',
-        theme_color: '#4a3f6b',
-        background_color: '#4a3f6b',
+        theme_color: '#10466c',
+        background_color: '#10466c',
         display: 'standalone',
         orientation: 'portrait',
         icons: [
