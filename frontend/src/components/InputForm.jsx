@@ -29,7 +29,7 @@ function WeightSlider({ label, value, onChange }) {
 export default function InputForm({ onSubmit, loading }) {
   const [url, setUrl]                       = useState('')
   const [styleWeight, setStyleWeight]       = useState(3)
-  const [topicWeight, setTopicWeight]       = useState(3)
+  const [showStyle, setShowStyle]           = useState(false)
   const [bookInfo, setBookInfo]             = useState(null)   // { title, subjects, ... }
   const [selectedSubjects, setSelected]     = useState([])
   const [loadingInfo, setLoadingInfo]       = useState(false)
@@ -86,7 +86,7 @@ export default function InputForm({ onSubmit, loading }) {
     e.preventDefault()
     if (!isValid || loading) return
     inputRef.current?.blur()
-    onSubmit({ url: url.trim(), styleWeight, topicWeight, selectedSubjects })
+    onSubmit({ url: url.trim(), styleWeight, selectedSubjects })
   }
 
   return (
@@ -163,19 +163,23 @@ export default function InputForm({ onSubmit, loading }) {
 
       <hr className="form-divider" />
 
-      <div className="sliders">
-        <span className="slider-section-title">
-          <svg viewBox="0 0 20 20" fill="none">
-            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-            <circle cx="7" cy="5" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
-            <circle cx="13" cy="10" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
-            <circle cx="7" cy="15" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
-          </svg>
-          Wegingen
-        </span>
-        <WeightSlider label="Schrijfstijl" value={styleWeight} onChange={setStyleWeight} />
-        <WeightSlider label="Onderwerp"    value={topicWeight}  onChange={setTopicWeight} />
-      </div>
+      <button type="button" className="style-toggle" onClick={() => setShowStyle(s => !s)}>
+        <svg viewBox="0 0 20 20" fill="none">
+          <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+          <circle cx="7" cy="5" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
+          <circle cx="13" cy="10" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
+          <circle cx="7" cy="15" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
+        </svg>
+        Schrijfstijl aanpassen
+        <svg className={`toggle-chevron${showStyle ? ' open' : ''}`} viewBox="0 0 20 20" fill="none">
+          <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+      {showStyle && (
+        <div className="style-panel">
+          <WeightSlider label="Schrijfstijl" value={styleWeight} onChange={setStyleWeight} />
+        </div>
+      )}
 
       <button type="submit" className="submit-btn" disabled={!isValid || loading}>
         {loading ? 'Zoeken…' : 'Aanbevelingen genereren'}
