@@ -232,13 +232,21 @@
 /* ── Query chip ── */
 .query-chip {
   background: #10466c;
-  border-radius: 14px;
-  padding: 14px 16px;
+  border-radius: 16px;
+  padding: 16px 18px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   width: 100%;
   max-width: 560px;
+}
+.query-chip-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
 }
 .query-chip-cover {
   width: 42px; height: 58px;
@@ -254,18 +262,28 @@
   display: flex; align-items: center; justify-content: center;
   font-size: 1.2rem; flex-shrink: 0;
 }
-.query-chip-text { flex: 1; min-width: 0; }
+.query-chip-text { min-width: 0; }
 .query-chip-label {
-  font-size: 0.65rem; color: rgba(255,255,255,0.6);
-  text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
+  font-size: 0.65rem; color: rgba(255,255,255,0.55);
+  text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;
 }
 .query-chip-title {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1rem; color: #fff;
+  font-size: 1rem; color: #fff; font-weight: 600;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   margin-top: 2px;
 }
-.query-chip-author { font-size: 0.78rem; color: rgba(255,255,255,0.65); margin-top: 2px; }
+.query-chip-author { font-size: 0.78rem; color: rgba(255,255,255,0.6); margin-top: 2px; }
+.query-chip-badge {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 
 /* ── Results ── */
 .results-header {
@@ -287,68 +305,120 @@
   background: #fff;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 4px rgba(16,70,108,0.07), 0 4px 16px rgba(16,70,108,0.05);
   display: flex;
   flex-direction: column;
 }
-.book-card-top { display: flex; gap: 14px; padding: 16px; }
+.book-card-top {
+  display: flex;
+  gap: 14px;
+  padding: 16px 18px 14px;
+  align-items: flex-start;
+}
+.book-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.book-rank-circle {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: #eef1f5;
+  color: #4a6a80;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
 .book-cover { flex-shrink: 0; }
 .book-cover img {
-  width: 70px; height: 98px;
+  width: 64px; height: 90px;
   object-fit: cover;
-  border-radius: 8px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+  border-radius: 7px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
   display: block;
 }
 .cover-placeholder {
-  width: 70px; height: 98px;
-  border-radius: 8px;
+  width: 64px; height: 90px;
+  border-radius: 7px;
   background: linear-gradient(135deg, #10466c 0%, #2a6d9e 100%);
   display: flex; align-items: center; justify-content: center;
   font-family: 'Playfair Display', serif;
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   color: rgba(255,255,255,0.9);
 }
-.book-meta {
-  flex: 1; min-width: 0;
-  display: flex; flex-direction: column;
-  justify-content: center; gap: 4px;
+.book-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
-.book-rank { font-size: 0.68rem; font-weight: 600; color: #10466c; text-transform: uppercase; letter-spacing: 0.5px; }
-.book-title { font-family: 'Playfair Display', Georgia, serif; font-size: 1rem; font-weight: 600; line-height: 1.25; color: #1a2e3e; }
+.book-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.book-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #1a2e3e;
+  flex: 1;
+  min-width: 0;
+}
 .book-title a { color: inherit; text-decoration: none; }
 .book-title a:active { opacity: 0.7; }
-.book-author { font-size: 0.82rem; color: #888; }
-.book-year { color: #7aacc4; font-size: 0.78rem; }
-.score-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
-.score-track { flex: 1; height: 4px; background: #e0edf5; border-radius: 2px; overflow: hidden; }
-.score-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #10466c, #4a8fb5); }
-.score-pct { font-size: 0.72rem; font-weight: 600; color: #10466c; white-space: nowrap; }
+.book-score-pct {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a2e3e;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.book-author { font-size: 0.82rem; color: #8aa0b0; }
+.book-year { font-size: 0.82rem; color: #8aa0b0; }
+
+/* Score bar — enkel de fill, geen track */
+.score-bar-row {
+  height: 3px;
+  background: #eef1f5;
+  margin: 0 18px;
+}
+.score-bar-fill {
+  height: 100%;
+  background: #10466c;
+  border-radius: 2px;
+}
 
 /* ── Why ── */
-.book-why { margin: 0 16px 16px; padding: 12px 14px; background: #f0f6fa; border-radius: 10px; border-left: 3px solid #10466c; }
-.why-label { font-size: 0.65rem; font-weight: 700; color: #10466c; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-.why-text { font-size: 0.84rem; color: #555; line-height: 1.55; }
+.book-why { margin: 14px 18px 14px; padding: 14px 16px; background: #f5f8fb; border-radius: 10px; }
+.why-label { font-size: 0.68rem; font-weight: 800; color: #1a2e3e; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
+.why-text { font-size: 0.85rem; color: #5a7080; line-height: 1.6; }
 
 /* ── Tags ── */
-.tag-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 16px; }
-.tag { background: #e0edf5; color: #10466c; font-size: 0.68rem; font-weight: 500; padding: 4px 10px; border-radius: 20px; }
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 18px 16px; }
+.tag { background: #eef4f8; color: #3a6a88; font-size: 0.75rem; font-weight: 500; padding: 5px 12px; border-radius: 20px; }
 
 .no-results { text-align: center; color: #aaa; font-size: 0.9rem; padding: 24px; }
 
 /* ── Buy buttons ── */
-.buy-row { display: flex; gap: 8px; padding: 0 16px 16px; }
+.buy-row { display: flex; gap: 10px; padding: 0 18px 18px; }
 .buy-btn {
   flex: 1;
   text-align: center;
-  padding: 9px 12px;
-  border-radius: 10px;
-  font-size: 0.78rem;
-  font-weight: 600;
+  padding: 12px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
   font-family: 'Inter', sans-serif;
   text-decoration: none;
   transition: opacity 0.15s;
 }
-.buy-btn:active { opacity: 0.7; }
-.buy-bol    { background: #0056f0; color: #fff; }
-.buy-amazon { background: #ff9900; color: #111; }
+.buy-btn:active { opacity: 0.75; }
+.buy-bol    { background: #10466c; color: #fff; }
+.buy-amazon { background: #c89a2a; color: #fff; }

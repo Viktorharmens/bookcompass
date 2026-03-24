@@ -1,46 +1,49 @@
-const AMAZON_TAG    = import.meta.env.VITE_AMAZON_TAG    || ""
-const BOL_PARTNER   = import.meta.env.VITE_BOL_PARTNER_ID || ""
+const AMAZON_TAG  = import.meta.env.VITE_AMAZON_TAG    || ""
+const BOL_PARTNER = import.meta.env.VITE_BOL_PARTNER_ID || ""
 
 function buyLinks(title, author) {
-  const q = encodeURIComponent(`${title} ${author}`.trim())
-  const amazon = AMAZON_TAG
+  const q       = encodeURIComponent(`${title} ${author}`.trim())
+  const amazon  = AMAZON_TAG
     ? `https://www.amazon.com/s?k=${q}&tag=${AMAZON_TAG}`
     : `https://www.amazon.com/s?k=${q}`
-  const bol = BOL_PARTNER
-    ? `https://www.bol.com/nl/nl/s/?searchtext=${q}&utm_source=boekfinder&utm_medium=affiliate&partnerid=${BOL_PARTNER}`
+  const bol     = BOL_PARTNER
+    ? `https://www.bol.com/nl/nl/s/?searchtext=${q}&partnerid=${BOL_PARTNER}`
     : `https://www.bol.com/nl/nl/s/?searchtext=${q}`
   return { amazon, bol }
 }
 
 function BookCard({ book, rank }) {
-  const olUrl = `https://openlibrary.org${book.ol_key}`
-  const pct   = Math.round(book.score * 100)
+  const olUrl           = `https://openlibrary.org${book.ol_key}`
+  const pct             = Math.round(book.score * 100)
   const { amazon, bol } = buyLinks(book.title, book.author)
 
   return (
     <article className="book-card">
       <div className="book-card-top">
-        <div className="book-cover">
-          {book.cover_url
-            ? <img src={book.cover_url} alt={book.title} />
-            : <div className="cover-placeholder">{book.title.charAt(0)}</div>
-          }
+        <div className="book-left">
+          <span className="book-rank-circle">{rank}</span>
+          <div className="book-cover">
+            {book.cover_url
+              ? <img src={book.cover_url} alt={book.title} />
+              : <div className="cover-placeholder">{book.title.charAt(0)}</div>
+            }
+          </div>
         </div>
-        <div className="book-meta">
-          <span className="book-rank">#{rank} aanbeveling</span>
-          <h3 className="book-title">
-            <a href={olUrl} target="_blank" rel="noopener noreferrer">{book.title}</a>
-          </h3>
+        <div className="book-info">
+          <div className="book-title-row">
+            <h3 className="book-title">
+              <a href={olUrl} target="_blank" rel="noopener noreferrer">{book.title}</a>
+            </h3>
+            <span className="book-score-pct">{pct}%</span>
+          </div>
           <p className="book-author">
             {book.author}{book.year ? <span className="book-year"> · {book.year}</span> : null}
           </p>
-          <div className="score-row">
-            <div className="score-track">
-              <div className="score-fill" style={{ width: `${pct}%` }} />
-            </div>
-            <span className="score-pct">{pct}%</span>
-          </div>
         </div>
+      </div>
+
+      <div className="score-bar-row">
+        <div className="score-bar-fill" style={{ width: `${pct}%` }} />
       </div>
 
       <div className="book-why">
@@ -64,12 +67,28 @@ function BookCard({ book, rank }) {
   )
 }
 
-export default function ResultsList({ books }) {
+export default function ResultsList({ books, queryBook }) {
   if (!books?.length) return <p className="no-results">Geen resultaten gevonden.</p>
 
   return (
     <>
-      <p className="results-header">{books.length} aanbevelingen</p>
+      {queryBook && (
+        <div className="query-chip">
+          <div className="query-chip-left">
+            {queryBook.cover_url
+              ? <img src={queryBook.cover_url} alt={queryBook.title} className="query-chip-cover" />
+              : <div className="query-chip-placeholder">📖</div>
+            }
+            <div className="query-chip-text">
+              <p className="query-chip-label">Gezocht op</p>
+              <p className="query-chip-title">{queryBook.title}</p>
+              <p className="query-chip-author">{queryBook.author}</p>
+            </div>
+          </div>
+          <span className="query-chip-badge">{books.length} aanbevelingen</span>
+        </div>
+      )}
+
       <div className="results-list">
         {books.map((book, i) => <BookCard key={book.ol_key + i} book={book} rank={i + 1} />)}
       </div>

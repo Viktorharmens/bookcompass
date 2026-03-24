@@ -53,21 +53,7 @@ export default function App() {
           </div>
         )}
 
-        {queryBook && (
-          <div className="query-chip">
-            {queryBook.cover_url
-              ? <img src={queryBook.cover_url} alt={queryBook.title} className="query-chip-cover" />
-              : <div className="query-chip-placeholder">📖</div>
-            }
-            <div className="query-chip-text">
-              <p className="query-chip-label">Gezocht op</p>
-              <p className="query-chip-title">{queryBook.title}</p>
-              <p className="query-chip-author">{queryBook.author}</p>
-            </div>
-          </div>
-        )}
-
-        {results && <ResultsList books={results} />}
+        {results && <ResultsList books={results} queryBook={queryBook} />}
       </main>
     </div>
   )
