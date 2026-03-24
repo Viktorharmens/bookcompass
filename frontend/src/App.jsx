@@ -10,7 +10,7 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  async function handleSubmit({ url, styleWeight, topicWeight }) {
+  async function handleSubmit({ url, styleWeight, topicWeight, selectedSubjects }) {
     setLoading(true)
     setError(null)
 
@@ -18,7 +18,7 @@ export default function App() {
       const res = await fetch('http://localhost:8000/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, style_weight: styleWeight, topic_weight: topicWeight }),
+        body: JSON.stringify({ url, style_weight: styleWeight, topic_weight: topicWeight, selected_subjects: selectedSubjects }),
       })
       if (!res.ok) {
         const data = await res.json()

@@ -2,7 +2,8 @@
 FastAPI backend — semantische boekaanbeveler.
 
 Endpoints:
-  POST /recommend   — geef een OL-URL + sliders, krijg 5 aanbevelingen
+  POST /book-info   — haal boekinfo + onderwerpen op (voor tag-selectie)
+  POST /recommend   — geef een OL-URL + sliders + tags, krijg aanbevelingen
   GET  /health      — liveness check
 """
 
@@ -15,7 +16,7 @@ import traceback
 from scraper import fetch_book
 from search_engine import SearchEngine
 
-app = FastAPI(title="Semantische Boekaanbeveler", version="0.2.0")
+app = FastAPI(title="BookCompass API", version="0.3.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,10 +33,22 @@ def get_engine() -> SearchEngine:
 
 # ── Schema's ──────────────────────────────────────────────────────────────────
 
+class BookInfoRequest(BaseModel):
+    url: str
+
+
+class BookInfoResponse(BaseModel):
+    title: str
+    author: str
+    subjects: list[str]
+    cover_url: str | None
+
+
 class RecommendRequest(BaseModel):
     url: str
     style_weight: float = 3.0
     topic_weight: float = 3.0
+    selected_subjects: list[str] = []
 
     @field_validator("style_weight", "topic_weight")
     @classmethod
@@ -67,9 +80,9 @@ async def health():
     return {"status": "ok"}
 
 
-@app.post("/recommend", response_model=RecommendResponse)
-async def get_recommendations(req: RecommendRequest):
-    # 1. Scrape het invoerboek van Open Library
+@app.post("/book-info", response_model=BookInfoResponse)
+async def get_book_info(req: BookInfoRequest):
+    """Haal boekinfo op zonder aanbevelingen te genereren (voor tag-selectie UI)."""
     try:
         book = await fetch_book(req.url)
     except ValueError as e:
@@ -77,7 +90,23 @@ async def get_recommendations(req: RecommendRequest):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Kon Open Library niet bereiken: {e}")
 
-    # 2. Zoek aanbevelingen via SearchEngine
+    return BookInfoResponse(
+        title=book.title,
+        author=book.author,
+        subjects=book.subjects[:12],
+        cover_url=book.cover_url,
+    )
+
+
+@app.post("/recommend", response_model=RecommendResponse)
+async def get_recommendations(req: RecommendRequest):
+    try:
+        book = await fetch_book(req.url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Kon Open Library niet bereiken: {e}")
+
     try:
         engine = get_engine()
         recs = engine.recommend(
@@ -85,6 +114,7 @@ async def get_recommendations(req: RecommendRequest):
             subjects=book.subjects,
             style_weight=req.style_weight,
             topic_weight=req.topic_weight,
+            selected_subjects=req.selected_subjects,
             top_k=10,
             exclude_key=book.ol_key,
             exclude_title=book.title,
