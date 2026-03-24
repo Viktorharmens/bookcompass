@@ -85,7 +85,7 @@ async def get_recommendations(req: RecommendRequest):
             subjects=book.subjects,
             style_weight=req.style_weight,
             topic_weight=req.topic_weight,
-            top_k=5,
+            top_k=10,
             exclude_key=book.ol_key,
             exclude_title=book.title,
         )
