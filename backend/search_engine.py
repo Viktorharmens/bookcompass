@@ -144,8 +144,10 @@ class SearchEngine:
     ) -> list[BookResult]:
         exclude_title_norm = exclude_title.strip().lower() if exclude_title else None
         if self._mode == "large":
-            return self._recommend_large(description, subjects or [], style_weight, topic_weight, top_k, exclude_key, exclude_title_norm)
-        return self._recommend_seed(description, subjects or [], style_weight, topic_weight, top_k, exclude_key, exclude_title_norm)
+            results = self._recommend_large(description, subjects or [], style_weight, topic_weight, top_k, exclude_key, exclude_title_norm)
+        else:
+            results = self._recommend_seed(description, subjects or [], style_weight, topic_weight, top_k, exclude_key, exclude_title_norm)
+        return sorted(results, key=lambda r: r.score, reverse=True)
 
     # ── Large-modus (CSV / SQLite) ──────────────────────────────────────────
 
