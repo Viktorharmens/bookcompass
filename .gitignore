@@ -1,0 +1,44 @@
+# ── Data — grote bestanden die opnieuw gegenereerd kunnen worden ──────────────
+backend/data/faiss_combined.index
+backend/data/books.db
+backend/data/ol_dump_*.txt.gz
+backend/data/ol_dump_*.txt
+backend/data/booksummaries.tar.gz
+backend/data/booksummaries.txt
+
+# De seed-bestanden (klein, dienen als fallback) wél committen:
+# backend/data/books.json
+# backend/data/faiss_topic.index
+# backend/data/faiss_style.index
+
+# ── Python ────────────────────────────────────────────────────────────────────
+backend/venv/
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+backend/.env
+
+# ── Node / frontend ───────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.cache/
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+
+# ── Editors ───────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
