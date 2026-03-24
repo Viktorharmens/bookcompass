@@ -40,10 +40,10 @@ export default function InputForm({ onSubmit, loading }) {
   const isValid   = url.includes('openlibrary.org')
   const showError = url.length > 10 && !isValid
 
-  // Haal boekinfo op zodra de gebruiker het URL-veld verlaat
-  const fetchBookInfo = useCallback(async () => {
-    if (!isValid || url === lastUrl.current) return
-    lastUrl.current = url
+  const fetchBookInfo = useCallback(async (targetUrl) => {
+    const clean = targetUrl.trim()
+    if (!clean.includes('openlibrary.org') || clean === lastUrl.current) return
+    lastUrl.current = clean
     setLoadingInfo(true)
     setInfoError(null)
     setBookInfo(null)
@@ -52,7 +52,7 @@ export default function InputForm({ onSubmit, loading }) {
       const res = await fetch(`${API}/book-info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({ url: clean }),
       })
       if (!res.ok) throw new Error()
       const data = await res.json()
@@ -62,7 +62,7 @@ export default function InputForm({ onSubmit, loading }) {
     } finally {
       setLoadingInfo(false)
     }
-  }, [url, isValid])
+  }, [])
 
   function toggleSubject(subject) {
     setSelected(prev =>
@@ -106,7 +106,10 @@ export default function InputForm({ onSubmit, loading }) {
             placeholder="https://openlibrary.org/works/..."
             value={url}
             onChange={handleUrlChange}
-            onBlur={fetchBookInfo}
+            onPaste={e => {
+              const pasted = e.clipboardData.getData('text')
+              setTimeout(() => fetchBookInfo(pasted), 0)
+            }}
             className={`url-input${showError ? ' invalid' : ''}${url ? ' has-clear' : ''}`}
           />
           {url && (
