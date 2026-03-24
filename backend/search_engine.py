@@ -140,26 +140,32 @@ class SearchEngine:
         topic_weight: float = 3.0,
         top_k: int = 5,
         exclude_key: str | None = None,
+        exclude_title: str | None = None,
     ) -> list[BookResult]:
+        exclude_title_norm = exclude_title.strip().lower() if exclude_title else None
         if self._mode == "large":
-            return self._recommend_large(description, subjects or [], style_weight, topic_weight, top_k, exclude_key)
-        return self._recommend_seed(description, subjects or [], style_weight, topic_weight, top_k, exclude_key)
+            return self._recommend_large(description, subjects or [], style_weight, topic_weight, top_k, exclude_key, exclude_title_norm)
+        return self._recommend_seed(description, subjects or [], style_weight, topic_weight, top_k, exclude_key, exclude_title_norm)
 
     # ── Large-modus (CSV / SQLite) ──────────────────────────────────────────
 
-    def _recommend_large(self, description, subjects, style_w, topic_w, top_k, exclude_key):
+    def _recommend_large(self, description, subjects, style_w, topic_w, top_k, exclude_key, exclude_title_norm):
         style = _style_text(description)
         combined = description + " " + style
         vec = self._model.encode(combined, normalize_embeddings=True).astype(np.float32).reshape(1, -1)
 
-        scores, ids = self._index.search(vec, top_k + 5)
+        scores, ids = self._index.search(vec, top_k + 20)
 
         results = []
         for score, idx in zip(scores[0], ids[0]):
             if idx < 0 or len(results) >= top_k:
                 break
             book = self._fetch_book(int(idx))
-            if not book or (exclude_key and book.get("ol_key") == exclude_key):
+            if not book:
+                continue
+            if exclude_key and book.get("ol_key") == exclude_key:
+                continue
+            if exclude_title_norm and book["title"].strip().lower() == exclude_title_norm:
                 continue
 
             book_subjects = json.loads(book.get("subjects") or "[]")
@@ -190,11 +196,11 @@ class SearchEngine:
 
     # ── Seed-modus (JSON / twee indexes) ────────────────────────────────────
 
-    def _recommend_seed(self, description, subjects, style_w, topic_w, top_k, exclude_key):
+    def _recommend_seed(self, description, subjects, style_w, topic_w, top_k, exclude_key, exclude_title_norm):
         topic_vec = self._model.encode(description, normalize_embeddings=True).astype(np.float32).reshape(1, -1)
         style_vec = self._model.encode(_style_text(description), normalize_embeddings=True).astype(np.float32).reshape(1, -1)
 
-        k = top_k + 5
+        k = top_k + 20
         t_scores, t_ids = self._seed_topic_index.search(topic_vec, k)
         s_scores, s_ids = self._seed_style_index.search(style_vec, k)
 
@@ -217,6 +223,8 @@ class SearchEngine:
                 break
             book = self._books[idx]
             if exclude_key and book.get("ol_key") == exclude_key:
+                continue
+            if exclude_title_norm and book["title"].strip().lower() == exclude_title_norm:
                 continue
             book_subjects = book.get("subjects", [])
             shared = list(set(s.lower() for s in subjects) & set(s.lower() for s in book_subjects))[:3]
