@@ -36,14 +36,12 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <div className="header-logo">
-          <img src={logo} alt="BookCompass" />
-        </div>
-        <p className="subtitle">Vind boeken op stijl en thematiek</p>
-      </header>
-
       <main className="app-main">
+        <div className="brand">
+          <img src={logo} alt="BookCompass" className="brand-logo" />
+          <p className="brand-tagline">Navigeer op gevoel. Vind je volgende boek.</p>
+        </div>
+
         <InputForm onSubmit={handleSubmit} loading={loading} />
 
         {error && <div className="error-box"><strong>Fout:</strong> {error}</div>}

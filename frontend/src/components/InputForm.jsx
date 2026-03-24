@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 
-const STEPS = ['Niet belangrijk', 'Weinig', 'Neutraal', 'Belangrijk', 'Cruciaal']
+const STEPS = ['Laag', 'Lager', 'Neutraal', 'Hoger', 'Hoog']
+const EXAMPLE_URL = 'https://openlibrary.org/works/OL1168007W/Nineteen_Eighty-Four'
 
 function WeightSlider({ label, value, onChange }) {
   return (
@@ -16,10 +17,8 @@ function WeightSlider({ label, value, onChange }) {
         className="slider"
       />
       <div className="slider-steps">
-        {STEPS.map((_, i) => (
-          <span key={i} style={{ color: i + 1 === value ? '#4a3f6b' : undefined, fontWeight: i + 1 === value ? '700' : undefined }}>
-            {i + 1}
-          </span>
+        {[1,2,3,4,5].map(i => (
+          <span key={i} className={i === value ? 'step-active' : ''}>{i}</span>
         ))}
       </div>
     </div>
@@ -27,12 +26,12 @@ function WeightSlider({ label, value, onChange }) {
 }
 
 export default function InputForm({ onSubmit, loading }) {
-  const [url, setUrl] = useState('')
+  const [url, setUrl]               = useState('')
   const [styleWeight, setStyleWeight] = useState(3)
   const [topicWeight, setTopicWeight] = useState(3)
   const inputRef = useRef(null)
 
-  const isValid = url.includes('openlibrary.org')
+  const isValid   = url.includes('openlibrary.org')
   const showError = url.length > 10 && !isValid
 
   function handleSubmit(e) {
@@ -46,28 +45,51 @@ export default function InputForm({ onSubmit, loading }) {
     <form className="input-form" onSubmit={handleSubmit} noValidate>
       <div className="field-group">
         <label htmlFor="book-url">Open Library URL</label>
-        <input
-          ref={inputRef}
-          id="book-url"
-          type="url"
-          inputMode="url"
-          placeholder="https://openlibrary.org/works/…"
-          value={url}
-          onChange={e => setUrl(e.target.value)}
-          className={`url-input${showError ? ' invalid' : ''}`}
-        />
+        <div className="input-wrapper">
+          <svg className="input-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8"/>
+            <path d="M14 14l3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+          <input
+            ref={inputRef}
+            id="book-url"
+            type="url"
+            inputMode="url"
+            placeholder="https://openlibrary.org/works/..."
+            value={url}
+            onChange={e => setUrl(e.target.value)}
+            className={`url-input${showError ? ' invalid' : ''}`}
+          />
+        </div>
         {showError && <span className="field-error">Voer een openlibrary.org URL in</span>}
       </div>
 
+      <hr className="form-divider" />
+
       <div className="sliders">
-        <span className="slider-section-title">Wegingen</span>
+        <span className="slider-section-title">
+          <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+            <circle cx="7" cy="5" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
+            <circle cx="13" cy="10" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
+            <circle cx="7" cy="15" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
+          </svg>
+          Wegingen
+        </span>
         <WeightSlider label="Schrijfstijl" value={styleWeight} onChange={setStyleWeight} />
-        <WeightSlider label="Onderwerp" value={topicWeight} onChange={setTopicWeight} />
+        <WeightSlider label="Onderwerp"    value={topicWeight}  onChange={setTopicWeight} />
       </div>
 
       <button type="submit" className="submit-btn" disabled={!isValid || loading}>
         {loading ? 'Zoeken…' : 'Aanbevelingen genereren'}
+        {!loading && <span className="submit-chevron">›</span>}
       </button>
+
+      <p className="example-link">
+        <a onClick={() => setUrl(EXAMPLE_URL)} role="button">
+          Bekijk een voorbeeld →
+        </a>
+      </p>
     </form>
   )
 }
