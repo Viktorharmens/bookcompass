@@ -156,9 +156,10 @@ def style_text(desc: str, subjects: list) -> str:
 
 
 def combined_text(book: dict) -> str:
-    desc  = book["description"]
-    style = style_text(desc, book.get("subjects", []))
-    return desc + " " + style
+    desc     = book["description"]
+    subjects = book.get("subjects", [])
+    genres   = ("Genres: " + ", ".join(subjects[:6])) if subjects else ""
+    return desc + " " + genres + " " + style_text(desc, subjects)
 
 
 # ── Database ───────────────────────────────────────────────────────────────────
