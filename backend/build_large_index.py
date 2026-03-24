@@ -95,9 +95,11 @@ def style_text(desc: str, subjects: list) -> str:
 
 
 def embed_text(book: dict) -> str:
-    desc  = book.get("description") or f"{book['title']} by {book.get('author','')}"
-    style = style_text(desc, book.get("subjects", []))
-    return desc[:600] + " " + style
+    desc     = book.get("description") or f"{book['title']} by {book.get('author','')}"
+    subjects = book.get("subjects", [])
+    genres   = ("Genres: " + ", ".join(subjects[:6])) if subjects else ""
+    style    = style_text(desc, subjects)
+    return desc[:600] + " " + genres + " " + style
 
 
 def _progress(block, block_size, total):

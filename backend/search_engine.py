@@ -36,6 +36,35 @@ TONE_KEYWORDS = [
     "ironic", "tragic", "romantic", "thriller", "mystery", "horror",
 ]
 
+# Doelgroep-detectie op basis van subjects
+_CHILDREN_KEYWORDS = (
+    "juvenile", "children", "picture book", "kids", "childrens",
+    "early reader", "board book",
+)
+_YA_KEYWORDS = (
+    "young adult", "ya fiction", "teen fiction", "teenage",
+)
+
+
+def _audience(subjects: list[str]) -> str:
+    """Geeft 'children', 'ya' of 'adult' terug op basis van subjects."""
+    combined = " ".join(s.lower() for s in subjects)
+    if any(kw in combined for kw in _CHILDREN_KEYWORDS):
+        return "children"
+    if any(kw in combined for kw in _YA_KEYWORDS):
+        return "ya"
+    return "adult"
+
+
+def _audience_ok(query_audience: str, result_subjects: list[str]) -> bool:
+    """Mag dit resultaat worden teruggegeven voor de gegeven query-doelgroep?"""
+    result_audience = _audience(result_subjects)
+    if query_audience == "adult":
+        return result_audience != "children"
+    if query_audience == "children":
+        return result_audience != "adult"
+    return True  # YA: alles is toegestaan
+
 
 @dataclass
 class BookResult:
@@ -142,21 +171,24 @@ class SearchEngine:
         exclude_key: str | None = None,
         exclude_title: str | None = None,
     ) -> list[BookResult]:
+        subjects           = subjects or []
         exclude_title_norm = exclude_title.strip().lower() if exclude_title else None
+        query_audience     = _audience(subjects)
         if self._mode == "large":
-            results = self._recommend_large(description, subjects or [], style_weight, topic_weight, top_k, exclude_key, exclude_title_norm)
+            results = self._recommend_large(description, subjects, style_weight, topic_weight, top_k, exclude_key, exclude_title_norm, query_audience)
         else:
-            results = self._recommend_seed(description, subjects or [], style_weight, topic_weight, top_k, exclude_key, exclude_title_norm)
+            results = self._recommend_seed(description, subjects, style_weight, topic_weight, top_k, exclude_key, exclude_title_norm, query_audience)
         return sorted(results, key=lambda r: r.score, reverse=True)
 
     # ── Large-modus (CSV / SQLite) ──────────────────────────────────────────
 
-    def _recommend_large(self, description, subjects, style_w, topic_w, top_k, exclude_key, exclude_title_norm):
-        style = _style_text(description)
-        combined = description + " " + style
+    def _recommend_large(self, description, subjects, style_w, topic_w, top_k, exclude_key, exclude_title_norm, query_audience):
+        subjects_text = ("Genres: " + ", ".join(subjects[:6])) if subjects else ""
+        style         = _style_text(description)
+        combined      = description + " " + subjects_text + " " + style
         vec = self._model.encode(combined, normalize_embeddings=True).astype(np.float32).reshape(1, -1)
 
-        scores, ids = self._index.search(vec, top_k + 20)
+        scores, ids = self._index.search(vec, top_k + 40)
 
         results = []
         for score, idx in zip(scores[0], ids[0]):
@@ -171,6 +203,8 @@ class SearchEngine:
                 continue
 
             book_subjects = json.loads(book.get("subjects") or "[]")
+            if not _audience_ok(query_audience, book_subjects):
+                continue
             shared = list(set(s.lower() for s in subjects) & set(s.lower() for s in book_subjects))[:3]
 
             results.append(BookResult(
@@ -198,11 +232,12 @@ class SearchEngine:
 
     # ── Seed-modus (JSON / twee indexes) ────────────────────────────────────
 
-    def _recommend_seed(self, description, subjects, style_w, topic_w, top_k, exclude_key, exclude_title_norm):
-        topic_vec = self._model.encode(description, normalize_embeddings=True).astype(np.float32).reshape(1, -1)
+    def _recommend_seed(self, description, subjects, style_w, topic_w, top_k, exclude_key, exclude_title_norm, query_audience):
+        subjects_text = ("Genres: " + ", ".join(subjects[:6])) if subjects else ""
+        topic_vec = self._model.encode(description + " " + subjects_text, normalize_embeddings=True).astype(np.float32).reshape(1, -1)
         style_vec = self._model.encode(_style_text(description), normalize_embeddings=True).astype(np.float32).reshape(1, -1)
 
-        k = top_k + 20
+        k = top_k + 40
         t_scores, t_ids = self._seed_topic_index.search(topic_vec, k)
         s_scores, s_ids = self._seed_style_index.search(style_vec, k)
 
@@ -229,6 +264,8 @@ class SearchEngine:
             if exclude_title_norm and book["title"].strip().lower() == exclude_title_norm:
                 continue
             book_subjects = book.get("subjects", [])
+            if not _audience_ok(query_audience, book_subjects):
+                continue
             shared = list(set(s.lower() for s in subjects) & set(s.lower() for s in book_subjects))[:3]
             combined_score = _clamp((style_w * sc["style"] + topic_w * sc["topic"]) / total_w)
 
