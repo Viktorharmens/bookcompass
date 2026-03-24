@@ -63,6 +63,10 @@ def _style_text(description: str) -> str:
     return "Writing style based on: " + " ".join(description.split()[:80])
 
 
+def _clamp(score: float) -> float:
+    return max(0.0, min(1.0, score))
+
+
 def _similarity_label(score: float) -> str:
     if score > 0.90: return "nagenoeg identiek"
     if score > 0.80: return "sterk vergelijkbaar"
@@ -168,8 +172,8 @@ class SearchEngine:
                 subjects=book_subjects,
                 cover_url=book.get("cover_url"),
                 ol_key=book.get("ol_key", ""),
-                score=round(float(score), 4),
-                explanation=_build_explanation(float(score), float(score), float(score),
+                score=round(_clamp(float(score)), 4),
+                explanation=_build_explanation(_clamp(float(score)), _clamp(float(score)), _clamp(float(score)),
                                                style_w, topic_w, shared),
                 year=book.get("year"),
             ))
@@ -216,7 +220,7 @@ class SearchEngine:
                 continue
             book_subjects = book.get("subjects", [])
             shared = list(set(s.lower() for s in subjects) & set(s.lower() for s in book_subjects))[:3]
-            combined_score = (style_w * sc["style"] + topic_w * sc["topic"]) / total_w
+            combined_score = _clamp((style_w * sc["style"] + topic_w * sc["topic"]) / total_w)
 
             results.append(BookResult(
                 title=book["title"],
@@ -226,7 +230,7 @@ class SearchEngine:
                 cover_url=book.get("cover_url"),
                 ol_key=book.get("ol_key", ""),
                 score=round(combined_score, 4),
-                explanation=_build_explanation(combined_score, sc["style"], sc["topic"],
+                explanation=_build_explanation(combined_score, _clamp(sc["style"]), _clamp(sc["topic"]),
                                                style_w, topic_w, shared),
                 year=book.get("year"),
             ))
