@@ -3,28 +3,31 @@
   flex-direction: column;
   height: 100%;
   height: 100dvh;
-  background: #f4f2f9;
+  background: #f0f4f7;
 }
 
 /* ── Header ── */
 .app-header {
-  background: #4a3f6b;
+  background: #10466c;
   color: #fff;
   padding: 56px 20px 24px;
   padding-top: calc(56px + env(safe-area-inset-top));
   flex-shrink: 0;
 }
-.app-header h1 {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1.6rem;
-  font-weight: 600;
-  letter-spacing: -0.3px;
-  line-height: 1.2;
+.header-logo {
+  display: inline-block;
+  background: #fff;
+  border-radius: 10px;
+  padding: 6px 12px;
+  margin-bottom: 10px;
+}
+.header-logo img {
+  height: 40px;
+  display: block;
 }
 .subtitle {
   font-size: 0.82rem;
   color: rgba(255,255,255,0.65);
-  margin-top: 6px;
   line-height: 1.5;
 }
 
@@ -59,18 +62,18 @@
 }
 .url-input {
   padding: 13px 14px;
-  border: 1.5px solid #e8e2f0;
+  border: 1.5px solid #d0e0ec;
   border-radius: 10px;
   font-size: 0.9rem;
   font-family: 'Inter', sans-serif;
   color: #1a1a2e;
-  background: #faf8fc;
+  background: #f5f9fc;
   transition: border-color 0.15s;
   width: 100%;
   appearance: none;
 }
 .url-input::placeholder { color: #bbb; }
-.url-input:focus { outline: none; border-color: #4a3f6b; background: #fff; }
+.url-input:focus { outline: none; border-color: #10466c; background: #fff; }
 .url-input.invalid { border-color: #e74c3c; }
 .field-error { color: #e74c3c; font-size: 0.78rem; }
 
@@ -88,7 +91,7 @@
 .slider-header { display: flex; justify-content: space-between; align-items: center; }
 .slider-label { font-size: 0.93rem; font-weight: 500; color: #1a1a2e; }
 .slider-pill {
-  background: #4a3f6b;
+  background: #10466c;
   color: #fff;
   font-size: 0.7rem;
   font-weight: 600;
@@ -97,7 +100,7 @@
 }
 .slider {
   width: 100%;
-  accent-color: #4a3f6b;
+  accent-color: #10466c;
   cursor: pointer;
   height: 4px;
 }
@@ -108,7 +111,7 @@
 .submit-btn {
   width: 100%;
   padding: 15px;
-  background: #4a3f6b;
+  background: #e8920c;
   color: #fff;
   border: none;
   border-radius: 12px;
@@ -119,8 +122,8 @@
   transition: background 0.15s, transform 0.1s;
   letter-spacing: 0.2px;
 }
-.submit-btn:active:not(:disabled) { background: #362e52; transform: scale(0.98); }
-.submit-btn:disabled { background: #c5bdd8; cursor: not-allowed; }
+.submit-btn:active:not(:disabled) { background: #c97c0a; transform: scale(0.98); }
+.submit-btn:disabled { background: #f0c07a; cursor: not-allowed; }
 
 /* ── Loading ── */
 .loading-card {
@@ -136,8 +139,8 @@
 .spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid #e8e2f0;
-  border-top-color: #4a3f6b;
+  border: 3px solid #d0e0ec;
+  border-top-color: #10466c;
   border-radius: 50%;
   animation: spin 0.75s linear infinite;
 }
@@ -157,7 +160,7 @@
 
 /* ── Query chip ── */
 .query-chip {
-  background: #4a3f6b;
+  background: #10466c;
   border-radius: 14px;
   padding: 14px 16px;
   display: flex;
@@ -220,7 +223,7 @@
 .cover-placeholder {
   width: 70px; height: 98px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #4a3f6b 0%, #7b6ea0 100%);
+  background: linear-gradient(135deg, #10466c 0%, #2a6d9e 100%);
   display: flex; align-items: center; justify-content: center;
   font-family: 'Playfair Display', serif;
   font-size: 1.8rem;
@@ -231,25 +234,25 @@
   display: flex; flex-direction: column;
   justify-content: center; gap: 4px;
 }
-.book-rank { font-size: 0.68rem; font-weight: 600; color: #4a3f6b; text-transform: uppercase; letter-spacing: 0.5px; }
+.book-rank { font-size: 0.68rem; font-weight: 600; color: #10466c; text-transform: uppercase; letter-spacing: 0.5px; }
 .book-title { font-family: 'Playfair Display', Georgia, serif; font-size: 1rem; font-weight: 600; line-height: 1.25; color: #1a1a2e; }
 .book-title a { color: inherit; text-decoration: none; }
 .book-title a:active { opacity: 0.7; }
 .book-author { font-size: 0.82rem; color: #888; }
-.book-year { color: #b0a8c4; font-size: 0.78rem; }
+.book-year { color: #7aacc4; font-size: 0.78rem; }
 .score-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
-.score-track { flex: 1; height: 4px; background: #f0edf6; border-radius: 2px; overflow: hidden; }
-.score-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #4a3f6b, #9b86c8); }
-.score-pct { font-size: 0.72rem; font-weight: 600; color: #4a3f6b; white-space: nowrap; }
+.score-track { flex: 1; height: 4px; background: #e0edf5; border-radius: 2px; overflow: hidden; }
+.score-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #10466c, #4a8fb5); }
+.score-pct { font-size: 0.72rem; font-weight: 600; color: #10466c; white-space: nowrap; }
 
 /* ── Why ── */
-.book-why { margin: 0 16px 16px; padding: 12px 14px; background: #f7f5fc; border-radius: 10px; border-left: 3px solid #4a3f6b; }
-.why-label { font-size: 0.65rem; font-weight: 700; color: #4a3f6b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.book-why { margin: 0 16px 16px; padding: 12px 14px; background: #f0f6fa; border-radius: 10px; border-left: 3px solid #10466c; }
+.why-label { font-size: 0.65rem; font-weight: 700; color: #10466c; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
 .why-text { font-size: 0.84rem; color: #555; line-height: 1.55; }
 
 /* ── Tags ── */
 .tag-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 16px; }
-.tag { background: #ede8f5; color: #4a3f6b; font-size: 0.68rem; font-weight: 500; padding: 4px 10px; border-radius: 20px; }
+.tag { background: #e0edf5; color: #10466c; font-size: 0.68rem; font-weight: 500; padding: 4px 10px; border-radius: 20px; }
 
 .no-results { text-align: center; color: #aaa; font-size: 0.9rem; padding: 24px; }
 

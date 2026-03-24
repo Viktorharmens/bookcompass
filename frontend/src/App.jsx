@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import InputForm from './components/InputForm'
 import ResultsList from './components/ResultsList'
+import logo from './assets/logo.png'
 import './App.css'
 
 export default function App() {
@@ -36,7 +37,9 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Boekaanbeveler</h1>
+        <div className="header-logo">
+          <img src={logo} alt="BookCompass" />
+        </div>
         <p className="subtitle">Vind boeken op stijl en thematiek</p>
       </header>
 
