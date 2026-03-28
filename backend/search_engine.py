@@ -97,11 +97,11 @@ def _clamp(score: float) -> float:
 
 
 def _similarity_label(score: float) -> str:
-    if score > 0.90: return "nagenoeg identiek"
-    if score > 0.80: return "sterk vergelijkbaar"
-    if score > 0.70: return "behoorlijk vergelijkbaar"
-    if score > 0.60: return "enigszins vergelijkbaar"
-    return "licht vergelijkbaar"
+    if score > 0.90: return "nearly identical"
+    if score > 0.80: return "highly similar"
+    if score > 0.70: return "quite similar"
+    if score > 0.60: return "somewhat similar"
+    return "slightly similar"
 
 
 def _build_explanation(score: float, style_score: float, topic_score: float,
@@ -110,13 +110,13 @@ def _build_explanation(score: float, style_score: float, topic_score: float,
     sr, tr = style_w / total, topic_w / total
     lines = []
     if sr >= 0.6:
-        lines.append(f"De schrijfstijl is {_similarity_label(style_score)} ({style_score:.0%} overeenkomst).")
+        lines.append(f"The writing style is {_similarity_label(style_score)} ({style_score:.0%} match).")
     elif tr >= 0.6:
-        lines.append(f"Het onderwerp en de thematiek zijn {_similarity_label(topic_score)} ({topic_score:.0%} overeenkomst).")
+        lines.append(f"The themes and subject matter are {_similarity_label(topic_score)} ({topic_score:.0%} match).")
     else:
-        lines.append(f"Zowel stijl ({style_score:.0%}) als onderwerp ({topic_score:.0%}) vertonen gelijkenissen.")
+        lines.append(f"Both writing style ({style_score:.0%}) and subject matter ({topic_score:.0%}) show similarities.")
     if shared:
-        lines.append(f"Gedeelde thema's: {', '.join(repr(s) for s in shared)}.")
+        lines.append(f"Shared themes: {', '.join(repr(s) for s in shared)}.")
     return " ".join(lines)
 
 
