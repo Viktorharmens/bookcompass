@@ -15,7 +15,7 @@ export default function App() {
     setError(null)
 
     try {
-      const res = await fetch('http://localhost:8000/recommend', {
+      const res = await fetch('/api/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, style_weight: styleWeight, topic_weight: 3, selected_subjects: selectedSubjects }),

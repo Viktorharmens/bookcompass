@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 
 const STEPS       = ['Laag', 'Lager', 'Neutraal', 'Hoger', 'Hoog']
 const EXAMPLE_URL = 'https://openlibrary.org/works/OL1168007W/Nineteen_Eighty-Four'
-const API         = 'http://localhost:8000'
+const API         = '/api'
 
 function WeightSlider({ label, value, onChange }) {
   return (
