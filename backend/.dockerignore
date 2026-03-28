@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+data/ol_dump_*.txt.gz
+data/ol_dump_*.txt
+data/booksummaries.*
+.env
