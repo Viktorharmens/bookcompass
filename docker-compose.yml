@@ -3,7 +3,7 @@ services:
     build: ./backend
     restart: unless-stopped
     volumes:
-      - ./backend/data:/app/data
+      - /data/bookcompass/backend-data:/app/data
 
   frontend:
     build: ./frontend
