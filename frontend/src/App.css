@@ -34,7 +34,7 @@
   font-family: 'Playfair Display', Georgia, serif;
   font-style: italic;
   font-size: 1.05rem;
-  color: #5a7a90;
+  color: #406070;
   letter-spacing: 0.1px;
   line-height: 1.5;
 }
@@ -58,7 +58,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #9aacba;
+  color: #6e8898;
 }
 
 /* ── URL input with icon ── */
@@ -117,7 +117,7 @@
   align-items: center;
   gap: 8px;
   font-size: 0.82rem;
-  color: #9aacba;
+  color: #6e8898;
 }
 .tag-loading-spinner {
   width: 14px; height: 14px;
@@ -135,13 +135,13 @@
 }
 .subject-picker-label {
   font-size: 0.84rem;
-  color: #4a6a80;
+  color: #2d5068;
   line-height: 1.4;
 }
 .subject-picker-label strong { color: #1a2e3e; }
 .subject-picker-hint {
   font-size: 0.75rem;
-  color: #9aacba;
+  color: #6e8898;
 }
 .subject-tags {
   display: flex;
@@ -157,7 +157,7 @@
   cursor: pointer;
   border: 1.5px solid #d0e0ec;
   background: #fff;
-  color: #4a6a80;
+  color: #2d5068;
   transition: all 0.15s;
 }
 .subject-tag:hover {
@@ -195,7 +195,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #9aacba;
+  color: #6e8898;
   font-family: 'Inter', sans-serif;
   transition: color 0.15s;
 }
@@ -215,7 +215,7 @@
 .slider-label { font-size: 0.95rem; font-weight: 700; color: #1a2e3e; }
 .slider-pill {
   background: #eef1f5;
-  color: #4a6a80;
+  color: #2d5068;
   font-size: 0.72rem;
   font-weight: 600;
   padding: 4px 12px;
@@ -276,7 +276,7 @@
 }
 .example-link a {
   font-size: 0.82rem;
-  color: #7a9db5;
+  color: #507d9a;
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
@@ -304,7 +304,7 @@
   animation: spin 0.75s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.loading-card p { font-size: 0.88rem; color: #888; text-align: center; }
+.loading-card p { font-size: 0.88rem; color: #555; text-align: center; }
 
 /* ── Error ── */
 .error-box {
@@ -354,7 +354,7 @@
 }
 .query-chip-text { min-width: 0; }
 .query-chip-label {
-  font-size: 0.65rem; color: rgba(255,255,255,0.55);
+  font-size: 0.65rem; color: rgba(255,255,255,0.75);
   text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;
 }
 .query-chip-title {
@@ -363,7 +363,7 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   margin-top: 2px;
 }
-.query-chip-author { font-size: 0.78rem; color: rgba(255,255,255,0.6); margin-top: 2px; }
+.query-chip-author { font-size: 0.78rem; color: rgba(255,255,255,0.82); margin-top: 2px; }
 .query-chip-badge {
   background: rgba(255,255,255,0.15);
   color: #fff;
@@ -379,7 +379,7 @@
 .results-header {
   font-size: 0.72rem; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.6px;
-  color: #888; padding: 0 4px;
+  color: #555; padding: 0 4px;
   align-self: flex-start;
 }
 .results-list {
@@ -416,7 +416,7 @@
   width: 28px; height: 28px;
   border-radius: 50%;
   background: #eef1f5;
-  color: #4a6a80;
+  color: #2d5068;
   font-size: 0.78rem;
   font-weight: 700;
   display: flex; align-items: center; justify-content: center;
@@ -470,8 +470,8 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-.book-author { font-size: 0.82rem; color: #8aa0b0; }
-.book-year { font-size: 0.82rem; color: #8aa0b0; }
+.book-author { font-size: 0.82rem; color: #5a7a8e; }
+.book-year { font-size: 0.82rem; color: #5a7a8e; }
 
 /* Score bar — enkel de fill, geen track */
 .score-bar-row {
@@ -488,13 +488,13 @@
 /* ── Why ── */
 .book-why { margin: 14px 18px 14px; padding: 14px 16px; background: #f5f8fb; border-radius: 10px; }
 .why-label { font-size: 0.68rem; font-weight: 800; color: #1a2e3e; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
-.why-text { font-size: 0.85rem; color: #5a7080; line-height: 1.6; }
+.why-text { font-size: 0.85rem; color: #3d5a6a; line-height: 1.6; }
 
 /* ── Tags ── */
 .tag-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 18px 16px; }
-.tag { background: #eef4f8; color: #3a6a88; font-size: 0.75rem; font-weight: 500; padding: 5px 12px; border-radius: 20px; }
+.tag { background: #eef4f8; color: #2a5470; font-size: 0.75rem; font-weight: 500; padding: 5px 12px; border-radius: 20px; }
 
-.no-results { text-align: center; color: #aaa; font-size: 0.9rem; padding: 24px; }
+.no-results { text-align: center; color: #777; font-size: 0.9rem; padding: 24px; }
 
 /* ── Buy buttons ── */
 .buy-row { display: flex; gap: 10px; padding: 0 18px 18px; }
