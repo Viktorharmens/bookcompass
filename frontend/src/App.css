@@ -400,8 +400,9 @@
 .book-card-top {
   display: flex;
   gap: 14px;
-  padding: 16px 18px 14px;
+  padding: 16px 18px 18px;
   align-items: flex-start;
+  border-bottom: 1px solid #eef1f5;
 }
 .book-cover { flex-shrink: 0; }
 .book-cover img {
@@ -489,7 +490,7 @@
 }
 
 /* ── Tags ── */
-.tag-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 18px 12px; }
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 14px 18px 12px; }
 .tag { background: #eef4f8; color: #2a5470; font-size: 0.75rem; font-weight: 500; padding: 5px 12px; border-radius: 20px; }
 
 .no-results { text-align: center; color: #777; font-size: 0.9rem; padding: 24px; }
