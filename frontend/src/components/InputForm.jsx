@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 
 const STEPS       = ['Low', 'Lower', 'Neutral', 'Higher', 'High']
-const EXAMPLE_URL = 'https://openlibrary.org/works/OL1168007W/Nineteen_Eighty-Four'
 const API         = '/api'
 
 function WeightSlider({ label, value, onChange }) {
@@ -91,7 +90,14 @@ export default function InputForm({ onSubmit, loading }) {
   return (
     <form className="input-form" onSubmit={handleSubmit} noValidate>
       <div className="field-group">
-        <label htmlFor="book-url">Open Library URL</label>
+        <label htmlFor="book-url">
+          Open Library URL
+          <a href="https://openlibrary.org" target="_blank" rel="noopener noreferrer" className="label-link" tabIndex={-1}>
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M11 3h6v6M17 3l-8 8M8 5H4a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </a>
+        </label>
         <div className="input-wrapper">
           <svg className="input-icon" viewBox="0 0 20 20" fill="none">
             <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8"/>
@@ -183,12 +189,6 @@ export default function InputForm({ onSubmit, loading }) {
         {loading ? 'Searching…' : 'Get recommendations'}
         {!loading && <span className="submit-chevron">›</span>}
       </button>
-
-      <p className="example-link">
-        <a onClick={() => { setUrl(EXAMPLE_URL); setBookInfo(null); setSelected([]); lastUrl.current = '' }} role="button">
-          View an example →
-        </a>
-      </p>
     </form>
   )
 }

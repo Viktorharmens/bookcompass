@@ -59,7 +59,18 @@
   text-transform: uppercase;
   letter-spacing: 0.8px;
   color: #6e8898;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
+.label-link {
+  color: #6e8898;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+.label-link:hover { color: #10466c; }
+.label-link svg { width: 14px; height: 14px; margin-top: -1px; }
 
 /* ── URL input with icon ── */
 .input-wrapper {
@@ -267,19 +278,6 @@
   font-size: 1.3rem;
   line-height: 1;
   margin-top: -1px;
-}
-
-/* ── Example link ── */
-.example-link {
-  text-align: center;
-  margin: 0;
-}
-.example-link a {
-  font-size: 0.82rem;
-  color: #507d9a;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
 }
 
 /* ── Loading ── */
