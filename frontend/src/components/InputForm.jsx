@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 
 const STEPS       = ['Low', 'Lower', 'Neutral', 'Higher', 'High']
-const EXAMPLE_URL = 'https://openlibrary.org/works/OL1168007W/Nineteen_Eighty-Four'
 const API         = '/api'
 
 function WeightSlider({ label, value, onChange }) {
@@ -190,12 +189,6 @@ export default function InputForm({ onSubmit, loading }) {
         {loading ? 'Searching…' : 'Get recommendations'}
         {!loading && <span className="submit-chevron">›</span>}
       </button>
-
-      <p className="example-link">
-        <a onClick={() => { setUrl(EXAMPLE_URL); setBookInfo(null); setSelected([]); lastUrl.current = '' }} role="button">
-          View an example →
-        </a>
-      </p>
     </form>
   )
 }
