@@ -43,7 +43,7 @@ export default function App() {
           <p className="brand-tagline">Navigate by feel. Find your next book.</p>
         </div>
 
-        <InputForm onSubmit={handleSubmit} loading={loading} />
+        <InputForm onSubmit={handleSubmit} onClear={() => { setResults(null); setQueryBook(null) }} loading={loading} />
 
         {error && <div className="error-box"><strong>Error:</strong> {error}</div>}
 
