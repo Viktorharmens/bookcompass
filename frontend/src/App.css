@@ -59,7 +59,18 @@
   text-transform: uppercase;
   letter-spacing: 0.8px;
   color: #6e8898;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
+.label-link {
+  color: #6e8898;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+.label-link:hover { color: #10466c; }
+.label-link svg { width: 11px; height: 11px; }
 
 /* ── URL input with icon ── */
 .input-wrapper {
