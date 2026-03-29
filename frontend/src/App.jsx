@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import InputForm from './components/InputForm'
 import ResultsList from './components/ResultsList'
+import Footer from './components/Footer'
 import logo from './assets/logo.png'
 import './App.css'
 
@@ -55,6 +56,7 @@ export default function App() {
 
         {results && <ResultsList books={results} queryBook={queryBook} />}
       </main>
+      <Footer />
     </div>
   )
 }
