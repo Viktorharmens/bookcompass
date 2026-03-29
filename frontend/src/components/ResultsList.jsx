@@ -60,7 +60,7 @@ function BookCard({ book, rank }) {
             <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <path d="M4 6h12M4 10h8M4 14h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
             </svg>
-            Beschrijving
+            Description
             <svg className={`toggle-chevron${descOpen ? ' open' : ''}`} viewBox="0 0 20 20" fill="none">
               <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
