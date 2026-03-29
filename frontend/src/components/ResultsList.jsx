@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const AMAZON_TAG  = import.meta.env.VITE_AMAZON_TAG    || ""
 const BOL_PARTNER = import.meta.env.VITE_BOL_PARTNER_ID || ""
 
@@ -13,6 +15,7 @@ function buyLinks(title, author) {
 }
 
 function BookCard({ book, rank }) {
+  const [descOpen, setDescOpen] = useState(false)
   const olUrl           = `https://openlibrary.org${book.ol_key}`
   const pct             = Math.round(book.score * 100)
   const { amazon, bol } = buyLinks(book.title, book.author)
@@ -50,6 +53,21 @@ function BookCard({ book, rank }) {
         <p className="why-label">Why this book?</p>
         <p className="why-text">{book.explanation}</p>
       </div>
+
+      {book.description && (
+        <div className="book-desc">
+          <button className="desc-toggle" onClick={() => setDescOpen(o => !o)}>
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M4 6h12M4 10h8M4 14h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+            </svg>
+            Description
+            <svg className={`toggle-chevron${descOpen ? ' open' : ''}`} viewBox="0 0 20 20" fill="none">
+              <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          {descOpen && <p className="desc-text">{book.description}</p>}
+        </div>
+      )}
 
       {book.subjects.length > 0 && (
         <div className="tag-row">
