@@ -23,14 +23,11 @@ function BookCard({ book, rank }) {
   return (
     <article className="book-card">
       <div className="book-card-top">
-        <div className="book-left">
-          <span className="book-rank-circle">{rank}</span>
-          <div className="book-cover">
-            {book.cover_url
-              ? <img src={book.cover_url} alt={book.title} />
-              : <div className="cover-placeholder">{book.title.charAt(0)}</div>
-            }
-          </div>
+        <div className="book-cover">
+          {book.cover_url
+            ? <img src={book.cover_url} alt={book.title} />
+            : <div className="cover-placeholder">{book.title.charAt(0)}</div>
+          }
         </div>
         <div className="book-info">
           <div className="book-title-row">
@@ -45,9 +42,13 @@ function BookCard({ book, rank }) {
         </div>
       </div>
 
-      <div className="score-bar-row">
-        <div className="score-bar-fill" style={{ width: `${pct}%` }} />
-      </div>
+      {book.subjects.length > 0 && (
+        <div className="tag-row">
+          {book.subjects.slice(0, 4).map(s => (
+            <span key={s} className="tag">{s}</span>
+          ))}
+        </div>
+      )}
 
       <div className="book-why">
         <p className="why-label">Why this book?</p>
@@ -66,14 +67,6 @@ function BookCard({ book, rank }) {
             </svg>
           </button>
           {descOpen && <p className="desc-text">{book.description}</p>}
-        </div>
-      )}
-
-      {book.subjects.length > 0 && (
-        <div className="tag-row">
-          {book.subjects.slice(0, 4).map(s => (
-            <span key={s} className="tag">{s}</span>
-          ))}
         </div>
       )}
 
