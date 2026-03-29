@@ -510,3 +510,102 @@
 .buy-btn:active { opacity: 0.75; }
 .buy-bol    { background: #10466c; color: #fff; }
 .buy-amazon { background: #c89a2a; color: #fff; }
+
+/* ── Footer ── */
+.app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  font-size: 0.72rem;
+  color: #8aa0b0;
+}
+.footer-sep { color: #c8d8e4; }
+.footer-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  font-family: inherit;
+  color: #8aa0b0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s;
+}
+.footer-link:hover { color: #2d5068; }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 46, 62, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  padding: 0;
+}
+@media (min-width: 560px) {
+  .modal-overlay { align-items: center; padding: 24px; }
+}
+.modal {
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 560px;
+  max-height: 80dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+@media (min-width: 560px) {
+  .modal { border-radius: 20px; }
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid #eef1f5;
+  flex-shrink: 0;
+}
+.modal-header h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a2e3e;
+}
+.modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #8aa0b0;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+.modal-close:hover { color: #1a2e3e; }
+.modal-close svg { width: 20px; height: 20px; }
+.modal-body {
+  padding: 20px 22px 28px;
+  overflow-y: auto;
+  font-size: 0.88rem;
+  color: #3d5a6a;
+  line-height: 1.7;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.modal-body h3 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #1a2e3e;
+  margin-top: 4px;
+}
+.modal-body a { color: #10466c; }
