@@ -25,7 +25,7 @@ function WeightSlider({ label, value, onChange }) {
   )
 }
 
-export default function InputForm({ onSubmit, loading }) {
+export default function InputForm({ onSubmit, onClear, loading }) {
   const [url, setUrl]                       = useState('')
   const [styleWeight, setStyleWeight]       = useState(3)
   const [showStyle, setShowStyle]           = useState(false)
@@ -119,7 +119,7 @@ export default function InputForm({ onSubmit, loading }) {
           />
           {url && (
             <button type="button" className="input-clear"
-              onClick={() => { setUrl(''); setBookInfo(null); setSelected([]); lastUrl.current = ''; inputRef.current?.focus() }}
+              onClick={() => { setUrl(''); setBookInfo(null); setSelected([]); lastUrl.current = ''; onClear?.(); inputRef.current?.focus() }}
               aria-label="Clear URL">
               <svg viewBox="0 0 20 20" fill="none">
                 <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
