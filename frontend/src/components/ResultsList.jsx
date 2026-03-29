@@ -42,6 +42,8 @@ function BookCard({ book, rank }) {
         </div>
       </div>
 
+      <div className="card-divider" />
+
       {book.subjects.length > 0 && (
         <div className="tag-row">
           {book.subjects.slice(0, 4).map(s => (
