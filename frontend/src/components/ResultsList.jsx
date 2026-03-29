@@ -50,11 +50,6 @@ function BookCard({ book, rank }) {
         </div>
       )}
 
-      <div className="book-why">
-        <p className="why-label">Why this book?</p>
-        <p className="why-text">{book.explanation}</p>
-      </div>
-
       {book.description && (
         <div className="book-desc">
           <button className="desc-toggle" onClick={() => setDescOpen(o => !o)}>
@@ -69,6 +64,11 @@ function BookCard({ book, rank }) {
           {descOpen && <p className="desc-text">{book.description}</p>}
         </div>
       )}
+
+      <div className="book-why">
+        <p className="why-label">Why this book?</p>
+        <p className="why-text">{book.explanation}</p>
+      </div>
 
       <div className="buy-row">
         <a className="buy-btn buy-bol"    href={bol}    target="_blank" rel="noopener noreferrer sponsored">Buy at bol.com</a>
