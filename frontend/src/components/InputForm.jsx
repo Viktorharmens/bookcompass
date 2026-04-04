@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 
-const STEPS       = ['Low', 'Lower', 'Neutral', 'Higher', 'High']
-const API         = '/api'
+const STEPS = ['Laag', 'Lager', 'Neutraal', 'Hoger', 'Hoog']
+const API   = '/api'
 
 function WeightSlider({ label, value, onChange }) {
   return (
@@ -26,23 +26,22 @@ function WeightSlider({ label, value, onChange }) {
 }
 
 export default function InputForm({ onSubmit, onClear, loading }) {
-  const [url, setUrl]                       = useState('')
-  const [styleWeight, setStyleWeight]       = useState(3)
-  const [showStyle, setShowStyle]           = useState(false)
-  const [bookInfo, setBookInfo]             = useState(null)
-  const [selectedSubjects, setSelected]     = useState([])
-  const [loadingInfo, setLoadingInfo]       = useState(false)
-  const [infoError, setInfoError]           = useState(null)
-  const inputRef  = useRef(null)
-  const lastUrl   = useRef('')
+  const [query, setQuery]                    = useState('')
+  const [styleWeight, setStyleWeight]        = useState(3)
+  const [showStyle, setShowStyle]            = useState(false)
+  const [bookInfo, setBookInfo]              = useState(null)
+  const [selectedSubjects, setSelected]      = useState([])
+  const [loadingInfo, setLoadingInfo]        = useState(false)
+  const [infoError, setInfoError]            = useState(null)
+  const inputRef = useRef(null)
+  const lastQuery = useRef('')
 
-  const isValid   = url.includes('openlibrary.org')
-  const showError = url.length > 10 && !isValid
+  const isValid = query.trim().length > 2 && !loadingInfo
 
-  const fetchBookInfo = useCallback(async (targetUrl) => {
-    const clean = targetUrl.trim()
-    if (!clean.includes('openlibrary.org') || clean === lastUrl.current) return
-    lastUrl.current = clean
+  const fetchBookInfo = useCallback(async (text) => {
+    const clean = text.trim()
+    if (clean.length < 3 || clean === lastQuery.current) return
+    lastQuery.current = clean
     setLoadingInfo(true)
     setInfoError(null)
     setBookInfo(null)
@@ -57,7 +56,7 @@ export default function InputForm({ onSubmit, onClear, loading }) {
       const data = await res.json()
       setBookInfo(data)
     } catch {
-      setInfoError('Could not fetch book info')
+      setInfoError('Kon geen boekinfo ophalen')
     } finally {
       setLoadingInfo(false)
     }
@@ -71,12 +70,12 @@ export default function InputForm({ onSubmit, onClear, loading }) {
     )
   }
 
-  function handleUrlChange(e) {
-    setUrl(e.target.value)
+  function handleQueryChange(e) {
+    setQuery(e.target.value)
     if (bookInfo) {
       setBookInfo(null)
       setSelected([])
-      lastUrl.current = ''
+      lastQuery.current = ''
     }
   }
 
@@ -84,19 +83,14 @@ export default function InputForm({ onSubmit, onClear, loading }) {
     e.preventDefault()
     if (!isValid || loading) return
     inputRef.current?.blur()
-    onSubmit({ url: url.trim(), styleWeight, selectedSubjects })
+    onSubmit({ url: query.trim(), styleWeight, selectedSubjects })
   }
 
   return (
     <form className="input-form" onSubmit={handleSubmit} noValidate>
       <div className="field-group">
-        <label htmlFor="book-url">
-          Open Library URL
-          <a href="https://openlibrary.org" target="_blank" rel="noopener noreferrer" className="label-link" tabIndex={-1}>
-            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path d="M11 3h6v6M17 3l-8 8M8 5H4a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </a>
+        <label htmlFor="book-query">
+          Boek zoeken
         </label>
         <div className="input-wrapper">
           <svg className="input-icon" viewBox="0 0 20 20" fill="none">
@@ -105,43 +99,49 @@ export default function InputForm({ onSubmit, onClear, loading }) {
           </svg>
           <input
             ref={inputRef}
-            id="book-url"
-            type="url"
-            inputMode="url"
-            placeholder="https://openlibrary.org/works/..."
-            value={url}
-            onChange={handleUrlChange}
+            id="book-query"
+            type="text"
+            placeholder="Titel, ISBN, bol.com, Amazon of Open Library URL"
+            value={query}
+            onChange={handleQueryChange}
+            onBlur={() => fetchBookInfo(query)}
             onPaste={e => {
               const pasted = e.clipboardData.getData('text')
               setTimeout(() => fetchBookInfo(pasted), 0)
             }}
-            className={`url-input${showError ? ' invalid' : ''}${url ? ' has-clear' : ''}`}
+            className={`url-input${query ? ' has-clear' : ''}`}
           />
-          {url && (
+          {query && (
             <button type="button" className="input-clear"
-              onClick={() => { setUrl(''); setBookInfo(null); setSelected([]); lastUrl.current = ''; onClear?.(); inputRef.current?.focus() }}
-              aria-label="Clear URL">
+              onClick={() => {
+                setQuery('')
+                setBookInfo(null)
+                setSelected([])
+                lastQuery.current = ''
+                onClear?.()
+                inputRef.current?.focus()
+              }}
+              aria-label="Clear">
               <svg viewBox="0 0 20 20" fill="none">
                 <path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
               </svg>
             </button>
           )}
         </div>
-        {showError && <span className="field-error">Please enter an openlibrary.org URL</span>}
       </div>
 
       {loadingInfo && (
         <div className="tag-loading">
           <span className="tag-loading-spinner" />
-          <span>Fetching book info…</span>
+          <span>Boekinfo ophalen…</span>
         </div>
       )}
 
       {bookInfo && bookInfo.subjects.length > 0 && (
         <div className="subject-picker">
           <p className="subject-picker-label">
-            What appeals to you about <strong>{bookInfo.title}</strong>?
-            <span className="subject-picker-hint"> Click to select</span>
+            Wat spreekt je aan in <strong>{bookInfo.title}</strong>?
+            <span className="subject-picker-hint"> Klik om te selecteren</span>
           </p>
           <div className="subject-tags">
             {bookInfo.subjects.map(s => (
@@ -157,7 +157,7 @@ export default function InputForm({ onSubmit, onClear, loading }) {
           </div>
           {selectedSubjects.length > 0 && (
             <p className="subject-picker-count">
-              {selectedSubjects.length} theme{selectedSubjects.length !== 1 ? 's' : ''} selected
+              {selectedSubjects.length} thema{selectedSubjects.length !== 1 ? "'s" : ''} geselecteerd
             </p>
           )}
         </div>
@@ -174,19 +174,19 @@ export default function InputForm({ onSubmit, onClear, loading }) {
           <circle cx="13" cy="10" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
           <circle cx="7" cy="15" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
         </svg>
-        Writing style
+        Schrijfstijl
         <svg className={`toggle-chevron${showStyle ? ' open' : ''}`} viewBox="0 0 20 20" fill="none">
           <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </button>
       {showStyle && (
         <div className="style-panel">
-          <WeightSlider label="Writing style" value={styleWeight} onChange={setStyleWeight} />
+          <WeightSlider label="Schrijfstijl" value={styleWeight} onChange={setStyleWeight} />
         </div>
       )}
 
       <button type="submit" className="submit-btn" disabled={!isValid || loading}>
-        {loading ? 'Searching…' : 'Get recommendations'}
+        {loading ? 'Zoeken…' : 'Aanbevelingen ophalen'}
         {!loading && <span className="submit-chevron">›</span>}
       </button>
     </form>

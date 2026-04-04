@@ -3,20 +3,25 @@ FastAPI backend — semantische boekaanbeveler.
 
 Endpoints:
   POST /book-info   — haal boekinfo + onderwerpen op (voor tag-selectie)
-  POST /recommend   — geef een OL-URL + sliders + tags, krijg aanbevelingen
+  POST /recommend   — geef een query + sliders + tags, krijg aanbevelingen
   GET  /health      — liveness check
+
+Invoer voor /book-info en /recommend (veld "url") kan zijn:
+  - OpenLibrary URL
+  - bol.com / Amazon / Goodreads URL
+  - ISBN (10 of 13 cijfers)
+  - Vrije tekst (boektitel)
 """
 
+import traceback
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
-from functools import lru_cache
-import traceback
 
 from scraper import fetch_book
-from search_engine import SearchEngine
+import groq_recommender
 
-app = FastAPI(title="BookCompass API", version="0.3.0")
+app = FastAPI(title="BookCompass API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -26,15 +31,10 @@ app.add_middleware(
 )
 
 
-@lru_cache(maxsize=1)
-def get_engine() -> SearchEngine:
-    return SearchEngine()
-
-
 # ── Schema's ──────────────────────────────────────────────────────────────────
 
 class BookInfoRequest(BaseModel):
-    url: str
+    url: str  # accepteert URL, ISBN of vrije titel
 
 
 class BookInfoResponse(BaseModel):
@@ -45,7 +45,7 @@ class BookInfoResponse(BaseModel):
 
 
 class RecommendRequest(BaseModel):
-    url: str
+    url: str  # accepteert URL, ISBN of vrije titel
     style_weight: float = 3.0
     topic_weight: float = 3.0
     selected_subjects: list[str] = []
@@ -87,7 +87,7 @@ async def get_book_info(req: BookInfoRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Could not reach Open Library: {e}")
+        raise HTTPException(status_code=502, detail=f"Kon boek niet ophalen: {e}")
 
     return BookInfoResponse(
         title=book.title,
@@ -104,22 +104,19 @@ async def get_recommendations(req: RecommendRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Could not reach Open Library: {e}")
+        raise HTTPException(status_code=502, detail=f"Kon boek niet ophalen: {e}")
 
     try:
-        engine = get_engine()
-        recs = engine.recommend(
-            description=book.description,
-            subjects=book.subjects,
+        recs = await groq_recommender.recommend(
+            book_title=book.title,
+            book_author=book.author,
+            book_description=book.description,
+            book_subjects=book.subjects,
             style_weight=req.style_weight,
             topic_weight=req.topic_weight,
             selected_subjects=req.selected_subjects,
-            top_k=10,
-            exclude_key=book.ol_key,
-            exclude_title=book.title,
+            k=10,
         )
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=503, detail=str(e))
     except Exception:
         raise HTTPException(status_code=500, detail=traceback.format_exc())
 
@@ -135,13 +132,13 @@ async def get_recommendations(req: RecommendRequest):
             BookResult(
                 title=r.title,
                 author=r.author,
-                description=r.description[:300],
+                description=r.description,
                 subjects=r.subjects,
                 cover_url=r.cover_url,
                 ol_key=r.ol_key,
                 score=r.score,
                 explanation=r.explanation,
-                year=getattr(r, "year", None),
+                year=r.year,
             )
             for r in recs
         ],

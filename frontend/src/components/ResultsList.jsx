@@ -58,7 +58,7 @@ function BookCard({ book, rank }) {
             <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <path d="M4 6h12M4 10h8M4 14h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
             </svg>
-            Description
+            Beschrijving
             <svg className={`toggle-chevron${descOpen ? ' open' : ''}`} viewBox="0 0 20 20" fill="none">
               <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -68,12 +68,12 @@ function BookCard({ book, rank }) {
       )}
 
       <div className="book-why">
-        <p className="why-label">Why this book?</p>
+        <p className="why-label">Waarom dit boek?</p>
         <p className="why-text">{book.explanation}</p>
       </div>
 
       <div className="buy-row">
-        <a className="buy-btn buy-bol"    href={bol}    target="_blank" rel="noopener noreferrer sponsored">Buy at bol.com</a>
+        <a className="buy-btn buy-bol"    href={bol}    target="_blank" rel="noopener noreferrer sponsored">Kopen bij bol.com</a>
         <a className="buy-btn buy-amazon" href={amazon} target="_blank" rel="noopener noreferrer sponsored">Amazon</a>
       </div>
     </article>
@@ -81,7 +81,7 @@ function BookCard({ book, rank }) {
 }
 
 export default function ResultsList({ books, queryBook }) {
-  if (!books?.length) return <p className="no-results">No results found.</p>
+  if (!books?.length) return <p className="no-results">Geen resultaten gevonden.</p>
 
   return (
     <>
@@ -93,12 +93,12 @@ export default function ResultsList({ books, queryBook }) {
               : <div className="query-chip-placeholder">📖</div>
             }
             <div className="query-chip-text">
-              <p className="query-chip-label">Based on</p>
+              <p className="query-chip-label">Gebaseerd op</p>
               <p className="query-chip-title">{queryBook.title}</p>
               <p className="query-chip-author">{queryBook.author}</p>
             </div>
           </div>
-          <span className="query-chip-badge">{books.length} recommendations</span>
+          <span className="query-chip-badge">{books.length} aanbevelingen</span>
         </div>
       )}
 

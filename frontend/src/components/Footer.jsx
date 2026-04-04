@@ -7,9 +7,9 @@ const MODALS = {
       <>
         <p>BookCompass helpt je boeken te ontdekken die lijken op een boek dat je al kent en waardeert — niet op basis van populariteit of genre-labels, maar op basis van hoe een boek <em>voelt</em>.</p>
         <h3>Wat je invoert</h3>
-        <p>Je plakt een Open Library URL van een boek dat je aangeeft als vertrekpunt. BookCompass haalt automatisch de metadata op: titel, auteur, jaar en onderwerpen.</p>
+        <p>Je voert een boektitel, ISBN, of URL in van bol.com, Amazon, Goodreads of Open Library. BookCompass haalt automatisch de metadata op: titel, auteur, jaar en onderwerpen.</p>
         <h3>Wat er achter de schermen gebeurt</h3>
-        <p>Elk boek in onze database is geanalyseerd op schrijfstijl en thematiek. Bij je zoekopdracht vergelijken we jouw boek met duizenden andere titels en berekenen we een overeenkomst. Je kunt zelf instellen hoeveel gewicht je geeft aan schrijfstijl versus thema.</p>
+        <p>Een AI-model analyseert jouw boek en zoekt naar de beste overeenkomsten op basis van thematiek en schrijfstijl. Je kunt zelf instellen hoeveel gewicht je geeft aan schrijfstijl versus thema.</p>
         <h3>De aanbevelingen</h3>
         <p>Je krijgt een lijst van boeken gerangschikt op overeenkomst, elk met een korte uitleg waarom dit boek bij jou past. Via de knoppen kun je ze direct opzoeken bij bol.com of Amazon.</p>
       </>
