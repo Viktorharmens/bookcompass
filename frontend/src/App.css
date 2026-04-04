@@ -400,25 +400,13 @@
 .book-card-top {
   display: flex;
   gap: 14px;
-  padding: 16px 18px 14px;
+  padding: 16px 18px 18px;
   align-items: flex-start;
 }
-.book-left {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.book-rank-circle {
-  width: 28px; height: 28px;
-  border-radius: 50%;
+.card-divider {
+  height: 1px;
   background: #eef1f5;
-  color: #2d5068;
-  font-size: 0.78rem;
-  font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
+  margin: 0 18px;
 }
 .book-cover { flex-shrink: 0; }
 .book-cover img {
@@ -471,18 +459,6 @@
 .book-author { font-size: 0.82rem; color: #5a7a8e; }
 .book-year { font-size: 0.82rem; color: #5a7a8e; }
 
-/* Score bar — enkel de fill, geen track */
-.score-bar-row {
-  height: 3px;
-  background: #eef1f5;
-  margin: 0 18px;
-}
-.score-bar-fill {
-  height: 100%;
-  background: #10466c;
-  border-radius: 2px;
-}
-
 /* ── Why ── */
 .book-why { margin: 14px 18px 14px; padding: 14px 16px; background: #f5f8fb; border-radius: 10px; }
 .why-label { font-size: 0.68rem; font-weight: 800; color: #1a2e3e; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
@@ -518,7 +494,7 @@
 }
 
 /* ── Tags ── */
-.tag-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 18px 16px; }
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 14px 18px 12px; }
 .tag { background: #eef4f8; color: #2a5470; font-size: 0.75rem; font-weight: 500; padding: 5px 12px; border-radius: 20px; }
 
 .no-results { text-align: center; color: #777; font-size: 0.9rem; padding: 24px; }
