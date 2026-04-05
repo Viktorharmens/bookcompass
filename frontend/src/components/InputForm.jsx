@@ -1,14 +1,13 @@
 import { useState, useRef, useCallback } from 'react'
 
-const STEPS = ['Laag', 'Lager', 'Neutraal', 'Hoger', 'Hoog']
-const API   = '/api'
+const API = '/api'
 
-function WeightSlider({ label, value, onChange }) {
+function FocusSlider({ value, onChange }) {
   return (
     <div className="slider-group">
-      <div className="slider-header">
-        <span className="slider-label">{label}</span>
-        <span className="slider-pill">{STEPS[value - 1]}</span>
+      <div className="slider-endpoints">
+        <span className={`slider-endpoint${value <= 2 ? ' active' : ''}`}>Onderwerp</span>
+        <span className={`slider-endpoint${value >= 4 ? ' active' : ''}`}>Schrijfstijl</span>
       </div>
       <input
         type="range" min="1" max="5" step="1"
@@ -16,11 +15,6 @@ function WeightSlider({ label, value, onChange }) {
         onChange={e => onChange(Number(e.target.value))}
         className="slider"
       />
-      <div className="slider-steps">
-        {[1,2,3,4,5].map(i => (
-          <span key={i} className={i === value ? 'step-active' : ''}>{i}</span>
-        ))}
-      </div>
     </div>
   )
 }
@@ -28,7 +22,6 @@ function WeightSlider({ label, value, onChange }) {
 export default function InputForm({ onSubmit, onClear, loading }) {
   const [query, setQuery]                    = useState('')
   const [styleWeight, setStyleWeight]        = useState(3)
-  const [showStyle, setShowStyle]            = useState(false)
   const [bookInfo, setBookInfo]              = useState(null)
   const [selectedSubjects, setSelected]      = useState([])
   const [loadingInfo, setLoadingInfo]        = useState(false)
@@ -167,23 +160,10 @@ export default function InputForm({ onSubmit, onClear, loading }) {
 
       <hr className="form-divider" />
 
-      <button type="button" className="style-toggle" onClick={() => setShowStyle(s => !s)}>
-        <svg viewBox="0 0 20 20" fill="none">
-          <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-          <circle cx="7" cy="5" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
-          <circle cx="13" cy="10" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
-          <circle cx="7" cy="15" r="2" fill="white" stroke="currentColor" strokeWidth="1.6"/>
-        </svg>
-        Schrijfstijl
-        <svg className={`toggle-chevron${showStyle ? ' open' : ''}`} viewBox="0 0 20 20" fill="none">
-          <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
-      {showStyle && (
-        <div className="style-panel">
-          <WeightSlider label="Schrijfstijl" value={styleWeight} onChange={setStyleWeight} />
-        </div>
-      )}
+      <div className="focus-slider-section">
+        <span className="focus-slider-label">Aanbevelingsfocus</span>
+        <FocusSlider value={styleWeight} onChange={setStyleWeight} />
+      </div>
 
       <button type="submit" className="submit-btn" disabled={!isValid || loading}>
         {loading ? 'Zoeken…' : 'Aanbevelingen ophalen'}
