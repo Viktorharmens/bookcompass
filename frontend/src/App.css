@@ -193,25 +193,7 @@
   margin: 0;
 }
 
-/* ── Style toggle ── */
-.style-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: #6e8898;
-  font-family: 'Inter', sans-serif;
-  transition: color 0.15s;
-}
-.style-toggle:hover { color: #4a6a80; }
-.style-toggle svg:first-child { width: 14px; height: 14px; flex-shrink: 0; }
+/* ── Toggle chevron (gedeeld met beschrijving-toggle in ResultsList) ── */
 .toggle-chevron {
   width: 14px; height: 14px;
   margin-left: auto;
@@ -219,38 +201,39 @@
   flex-shrink: 0;
 }
 .toggle-chevron.open { transform: rotate(180deg); }
-.style-panel { padding-top: 4px; }
 
-.slider-group { display: flex; flex-direction: column; gap: 8px; }
-.slider-header { display: flex; justify-content: space-between; align-items: center; }
-.slider-label { font-size: 0.95rem; font-weight: 700; color: #1a2e3e; }
-.slider-pill {
-  background: #eef1f5;
-  color: #2d5068;
-  font-size: 0.72rem;
+/* ── Aanbevelingsfocus slider ── */
+.focus-slider-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.focus-slider-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #6e8898;
+}
+.slider-group { display: flex; flex-direction: column; gap: 6px; }
+.slider-endpoints {
+  display: flex;
+  justify-content: space-between;
+}
+.slider-endpoint {
+  font-size: 0.82rem;
   font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 20px;
+  color: #a0b4c0;
+  transition: color 0.15s;
+}
+.slider-endpoint.active {
+  color: #10466c;
 }
 .slider {
   width: 100%;
   accent-color: #10466c;
   cursor: pointer;
   height: 4px;
-}
-.slider-steps {
-  display: flex;
-  justify-content: space-between;
-  padding: 0 2px;
-}
-.slider-steps span {
-  font-size: 0.68rem;
-  color: #c0d0db;
-  font-weight: 500;
-}
-.slider-steps .step-active {
-  color: #10466c;
-  font-weight: 700;
 }
 
 /* ── Submit ── */
