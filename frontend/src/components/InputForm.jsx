@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
 
 const API = '/api'
 
@@ -28,7 +28,6 @@ export default function InputForm({ onSubmit, onClear, loading }) {
   const [infoError, setInfoError]            = useState(null)
   const inputRef = useRef(null)
   const lastQuery = useRef('')
-  const debounceRef = useRef(null)
 
   const isValid = query.trim().length > 2 && !loadingInfo
 
@@ -55,13 +54,6 @@ export default function InputForm({ onSubmit, onClear, loading }) {
       setLoadingInfo(false)
     }
   }, [])
-
-  // Debounce: haal boekinfo op 600ms na het laatste toetsaanslag
-  useEffect(() => {
-    clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => fetchBookInfo(query), 600)
-    return () => clearTimeout(debounceRef.current)
-  }, [query, fetchBookInfo])
 
   function toggleSubject(subject) {
     setSelected(prev =>
@@ -105,9 +97,9 @@ export default function InputForm({ onSubmit, onClear, loading }) {
             placeholder="Titel, ISBN, bol.com, Amazon of Open Library URL"
             value={query}
             onChange={handleQueryChange}
+            onBlur={() => fetchBookInfo(query)}
             onPaste={e => {
               const pasted = e.clipboardData.getData('text')
-              clearTimeout(debounceRef.current)
               setTimeout(() => fetchBookInfo(pasted), 0)
             }}
             className={`url-input${query ? ' has-clear' : ''}`}
