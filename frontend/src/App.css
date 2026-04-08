@@ -597,3 +597,24 @@
   margin-top: 4px;
 }
 .modal-body a { color: #10466c; }
+
+/* ── PWA / mobiel app-gevoel ── */
+
+/* Snellere touch-respons op knoppen en inputs, geen dubbel-tap zoom */
+button, input, a, select {
+  touch-action: manipulation;
+}
+
+/* Alleen van toepassing als de app geïnstalleerd is (standalone PWA) */
+@media (display-mode: standalone) {
+  /* Iets meer ruimte onder de header zodat content niet te hoog zit */
+  .app-main {
+    padding-top: calc(32px + env(safe-area-inset-top));
+  }
+
+  /* Merknaam iets kleiner op kleine schermen in app-modus */
+  @media (max-height: 700px) {
+    .brand-logo { height: 80px; }
+    .brand-tagline { display: none; }
+  }
+}
