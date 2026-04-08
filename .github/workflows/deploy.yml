@@ -1,0 +1,14 @@
+name: Deploy on tag
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify deployment
+        run: |
+          curl --fail -X GET "${{ secrets.COOLIFY_WEBHOOK_URL }}"
