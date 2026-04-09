@@ -605,6 +605,38 @@ button, input, a, select {
   touch-action: manipulation;
 }
 
+/* ── PWA info-knop (rechtsboven) ── */
+.pwa-info-btn {
+  display: none;
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 10px);
+  right: 16px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #d8e2e9;
+  border: none;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  color: #4a6070;
+  z-index: 100;
+  padding: 0;
+  font-family: Georgia, serif;
+  font-style: italic;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1;
+  transition: background 0.15s;
+}
+.pwa-info-btn:active { background: rgba(0, 0, 0, 0.18); }
+
+/* Op kleine schermen (mobiele browser + standalone PWA) */
+@media (max-width: 639px) {
+  .app-footer { display: none; }
+  .pwa-info-btn { display: flex; }
+}
+
 /* Alleen van toepassing als de app geïnstalleerd is (standalone PWA) */
 @media (display-mode: standalone) {
   /* Iets meer ruimte onder de header zodat content niet te hoog zit */
@@ -617,4 +649,152 @@ button, input, a, select {
     .brand-logo { height: 80px; }
     .brand-tagline { display: none; }
   }
+
+  /* Verberg reguliere footer, toon de info-knop */
+  .app-footer { display: none; }
+  .pwa-info-btn { display: flex; }
+}
+
+/* ── Info sheet (slide-up vanuit de onderkant) ── */
+.info-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: flex-end;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.info-sheet {
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  animation: infoSheetUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  will-change: transform;
+}
+.info-sheet.closing {
+  animation: infoSheetDown 0.28s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+@keyframes infoSheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes infoSheetDown {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+}
+
+.info-sheet-handle-area {
+  padding: 14px 0 8px;
+  display: flex;
+  justify-content: center;
+  cursor: grab;
+  flex-shrink: 0;
+  touch-action: none;
+}
+.info-sheet-handle-area:active { cursor: grabbing; }
+.info-sheet-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: #d0dce4;
+}
+
+.info-sheet-body {
+  overflow-y: auto;
+  padding: 4px 22px calc(28px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.info-section {
+  padding: 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.info-section h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a2e3e;
+}
+.info-section p {
+  font-size: 0.84rem;
+  color: #3d5a6a;
+  line-height: 1.7;
+}
+.info-section a { color: #10466c; }
+
+.info-divider {
+  height: 1px;
+  background: #eef1f5;
+  margin: 2px 0;
+}
+
+.info-sheet-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0 4px;
+  border-top: 1px solid #eef1f5;
+  margin-top: 8px;
+}
+.info-sheet-copyright {
+  font-size: 0.72rem;
+  color: #8aa0b0;
+}
+.info-sheet-links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.info-sheet-privacy-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.72rem;
+  font-family: inherit;
+  color: #8aa0b0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Sub-modal voor privacybeleid binnen de info sheet */
+.info-sub-modal {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 82vh;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: infoSheetUp 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+.info-sub-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid #eef1f5;
+  flex-shrink: 0;
+}
+.info-sub-modal-header h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a2e3e;
+}
+.info-sub-modal .modal-body {
+  padding-bottom: calc(28px + env(safe-area-inset-bottom));
 }
