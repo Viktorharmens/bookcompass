@@ -663,8 +663,16 @@ button, input, a, select {
   display: flex;
   align-items: flex-end;
   background: rgba(10, 30, 50, 0.25);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Blur de pagina-inhoud wanneer de info-sheet open is */
+body.sheet-open .app-main {
+  filter: blur(4px);
+  transition: filter 0.3s ease;
+  pointer-events: none;
+}
+.app-main {
+  transition: filter 0.3s ease;
 }
 
 .info-sheet {

@@ -51,6 +51,7 @@ function InfoSheet({ onClose }) {
   const dismiss = () => {
     if (closing) return
     setClosing(true)
+    document.body.classList.remove('sheet-open')
     setTimeout(onClose, 280)
   }
 
@@ -162,13 +163,19 @@ export default function Footer() {
       {/* Info-knop alleen zichtbaar in standalone PWA */}
       <button
         className="pwa-info-btn"
-        onClick={() => setSheetOpen(true)}
+        onClick={() => {
+          setSheetOpen(true)
+          document.body.classList.add('sheet-open')
+        }}
         aria-label="Info"
       >
         i
       </button>
 
-      {sheetOpen && <InfoSheet onClose={() => setSheetOpen(false)} />}
+      {sheetOpen && <InfoSheet onClose={() => {
+        setSheetOpen(false)
+        document.body.classList.remove('sheet-open')
+      }} />}
 
       {modal && (
         <div className="modal-overlay" onClick={() => setActiveModal(null)}>
