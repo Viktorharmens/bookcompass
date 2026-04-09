@@ -662,6 +662,7 @@ button, input, a, select {
   z-index: 300;
   display: flex;
   align-items: flex-end;
+  background: rgba(10, 30, 50, 0.25);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
