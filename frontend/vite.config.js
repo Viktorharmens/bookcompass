@@ -18,8 +18,8 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         icons: [
-          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-          { src: '/favicon.png',  sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: '/pwa-icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          { src: '/pwa-icon.png',     sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
       },
     }),
