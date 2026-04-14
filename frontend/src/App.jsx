@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import InputForm from './components/InputForm'
 import ResultsList from './components/ResultsList'
 import Footer from './components/Footer'
@@ -10,6 +11,11 @@ export default function App() {
   const [queryBook, setQueryBook] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const { t, i18n } = useTranslation()
+
+  useEffect(() => {
+    document.documentElement.lang = i18n.language
+  }, [i18n.language])
 
   async function handleSubmit({ url, styleWeight, selectedSubjects }) {
     setLoading(true)
@@ -40,17 +46,17 @@ export default function App() {
       <main className="app-main">
         <div className="brand">
           <img src={logo} alt="BookCompass" className="brand-logo" />
-          <p className="brand-tagline">Navigate by feel. Find your next book.</p>
+          <p className="brand-tagline">{t('tagline')}</p>
         </div>
 
         <InputForm onSubmit={handleSubmit} onClear={() => { setResults(null); setQueryBook(null) }} loading={loading} />
 
-        {error && <div className="error-box"><strong>Error:</strong> {error}</div>}
+        {error && <div className="error-box"><strong>{t('errorLabel')}</strong> {error}</div>}
 
         {loading && (
           <div className="loading-card">
             <div className="spinner" />
-            <p>Analyzing and searching…</p>
+            <p>{t('loadingText')}</p>
           </div>
         )}
 

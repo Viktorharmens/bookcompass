@@ -1,13 +1,15 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const API = '/api'
 
 function FocusSlider({ value, onChange }) {
+  const { t } = useTranslation()
   return (
     <div className="slider-group">
       <div className="slider-endpoints">
-        <span className={`slider-endpoint${value <= 2 ? ' active' : ''}`}>Onderwerp</span>
-        <span className={`slider-endpoint${value >= 4 ? ' active' : ''}`}>Schrijfstijl</span>
+        <span className={`slider-endpoint${value <= 2 ? ' active' : ''}`}>{t('form.sliderTopic')}</span>
+        <span className={`slider-endpoint${value >= 4 ? ' active' : ''}`}>{t('form.sliderStyle')}</span>
       </div>
       <input
         type="range" min="1" max="5" step="1"
@@ -20,6 +22,7 @@ function FocusSlider({ value, onChange }) {
 }
 
 export default function InputForm({ onSubmit, onClear, loading }) {
+  const { t } = useTranslation()
   const [query, setQuery]                    = useState('')
   const [styleWeight, setStyleWeight]        = useState(3)
   const [bookInfo, setBookInfo]              = useState(null)
@@ -50,13 +53,13 @@ export default function InputForm({ onSubmit, onClear, loading }) {
       const data = await res.json()
       setBookInfo(data)
     } catch {
-      setInfoError('Kon geen boekinfo ophalen')
+      setInfoError(t('form.infoError'))
     } finally {
       setLoadingInfo(false)
     }
-  }, [])
+  }, [t])
 
-  // Debounce: haal boekinfo op 600ms na het laatste toetsaanslag
+  // Debounce: fetch book info 600ms after last keystroke
   useEffect(() => {
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => fetchBookInfo(query), 600)
@@ -91,7 +94,7 @@ export default function InputForm({ onSubmit, onClear, loading }) {
     <form className="input-form" onSubmit={handleSubmit} noValidate>
       <div className="field-group">
         <label htmlFor="book-query">
-          Boek zoeken
+          {t('form.label')}
         </label>
         <div className="input-wrapper">
           <svg className="input-icon" viewBox="0 0 20 20" fill="none">
@@ -102,7 +105,7 @@ export default function InputForm({ onSubmit, onClear, loading }) {
             ref={inputRef}
             id="book-query"
             type="text"
-            placeholder="Titel, ISBN, bol.com, Amazon of Open Library URL"
+            placeholder={t('form.placeholder')}
             value={query}
             onChange={handleQueryChange}
             onPaste={e => {
@@ -134,15 +137,15 @@ export default function InputForm({ onSubmit, onClear, loading }) {
       {loadingInfo && (
         <div className="tag-loading">
           <span className="tag-loading-spinner" />
-          <span>Boekinfo ophalen…</span>
+          <span>{t('form.loadingInfo')}</span>
         </div>
       )}
 
       {bookInfo && bookInfo.subjects.length > 0 && (
         <div className="subject-picker">
           <p className="subject-picker-label">
-            Wat spreekt je aan in <strong>{bookInfo.title}</strong>?
-            <span className="subject-picker-hint"> Klik om te selecteren</span>
+            {t('form.subjectQuestion')} <strong>{bookInfo.title}</strong>?
+            <span className="subject-picker-hint"> {t('form.subjectHint')}</span>
           </p>
           <div className="subject-tags">
             {bookInfo.subjects.map(s => (
@@ -158,7 +161,7 @@ export default function InputForm({ onSubmit, onClear, loading }) {
           </div>
           {selectedSubjects.length > 0 && (
             <p className="subject-picker-count">
-              {selectedSubjects.length} thema{selectedSubjects.length !== 1 ? "'s" : ''} geselecteerd
+              {t('form.subjectCount', { count: selectedSubjects.length })}
             </p>
           )}
         </div>
@@ -169,12 +172,12 @@ export default function InputForm({ onSubmit, onClear, loading }) {
       <hr className="form-divider" />
 
       <div className="focus-slider-section">
-        <span className="focus-slider-label">Aanbevelingsfocus</span>
+        <span className="focus-slider-label">{t('form.sliderLabel')}</span>
         <FocusSlider value={styleWeight} onChange={setStyleWeight} />
       </div>
 
       <button type="submit" className="submit-btn" disabled={!isValid || loading}>
-        {loading ? 'Zoeken…' : 'Aanbevelingen ophalen'}
+        {loading ? t('form.searching') : t('form.submit')}
         {!loading && <span className="submit-chevron">›</span>}
       </button>
     </form>

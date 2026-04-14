@@ -525,6 +525,31 @@
 }
 .footer-link:hover { color: #2d5068; }
 
+/* ── Language switcher ── */
+.lang-switcher {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.lang-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  font-family: inherit;
+  color: #8aa0b0;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s;
+  font-weight: 400;
+}
+.lang-btn:hover { color: #2d5068; }
+.lang-btn.active {
+  color: #10466c;
+  font-weight: 600;
+}
+.lang-sep { color: #c8d8e4; font-size: 0.65rem; }
+
 /* ── Modal ── */
 .modal-overlay {
   position: fixed;
