@@ -527,28 +527,60 @@
 
 /* ── Language switcher ── */
 .lang-switcher {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 14px);
+  right: 20px;
+  z-index: 200;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 .lang-btn {
   background: none;
   border: none;
   padding: 0;
-  font-size: inherit;
+  font-size: 0.72rem;
   font-family: inherit;
   color: #8aa0b0;
   cursor: pointer;
-  text-decoration: none;
   transition: color 0.15s;
   font-weight: 400;
+  line-height: 1;
 }
 .lang-btn:hover { color: #2d5068; }
 .lang-btn.active {
   color: #10466c;
   font-weight: 600;
 }
-.lang-sep { color: #c8d8e4; font-size: 0.65rem; }
+.lang-sep { color: #c8d8e4; font-size: 0.6rem; line-height: 1; }
+
+/* On mobile and in standalone PWA: pill next to the info button */
+@media (max-width: 639px) {
+  .lang-switcher {
+    top: calc(env(safe-area-inset-top) + 10px);
+    right: 58px; /* 16px margin + 34px info btn + 8px gap */
+    height: 34px;
+    background: #d8e2e9;
+    border-radius: 17px;
+    padding: 0 11px;
+  }
+  .lang-btn { color: #4a6070; }
+  .lang-btn.active { color: #10466c; font-weight: 700; }
+  .lang-sep { color: #a0b8c8; }
+}
+@media (display-mode: standalone) {
+  .lang-switcher {
+    top: calc(env(safe-area-inset-top) + 10px);
+    right: 58px;
+    height: 34px;
+    background: #d8e2e9;
+    border-radius: 17px;
+    padding: 0 11px;
+  }
+  .lang-btn { color: #4a6070; }
+  .lang-btn.active { color: #10466c; font-weight: 700; }
+  .lang-sep { color: #a0b8c8; }
+}
 
 /* ── Modal ── */
 .modal-overlay {

@@ -156,8 +156,6 @@ function InfoSheet({ onClose }) {
           <div className="info-sheet-footer">
             <span className="info-sheet-copyright">{t('footer.copyright', { year: new Date().getFullYear() })}</span>
             <div className="info-sheet-links">
-              <LanguageSwitcher />
-              <span className="footer-sep">·</span>
               <button className="info-sheet-privacy-btn" onClick={() => setActiveSubModal('disclaimer')}>{t('footer.disclaimer')}</button>
               <span className="footer-sep">·</span>
               <button className="info-sheet-privacy-btn" onClick={() => setActiveSubModal('privacy')}>{t('footer.privacy')}</button>
@@ -208,9 +206,10 @@ export default function Footer() {
         <button className="footer-link" onClick={() => setActiveModal('disclaimer')}>{t('footer.disclaimer')}</button>
         <span className="footer-sep">·</span>
         <button className="footer-link" onClick={() => setActiveModal('privacy')}>{t('footer.privacy')}</button>
-        <span className="footer-sep">·</span>
-        <LanguageSwitcher />
       </footer>
+
+      {/* Language switcher — fixed top-right on desktop, next to info button on mobile */}
+      <LanguageSwitcher />
 
       {/* Info button only visible in standalone PWA */}
       <button
