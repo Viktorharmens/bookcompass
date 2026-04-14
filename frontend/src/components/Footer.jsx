@@ -1,52 +1,97 @@
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
-const MODALS = {
-  howItWorks: {
-    title: 'Hoe werkt BookCompass?',
-    content: (
-      <>
-        <p>BookCompass helpt je boeken te ontdekken die lijken op een boek dat je al kent en waardeert — niet op basis van populariteit of genre-labels, maar op basis van hoe een boek <em>voelt</em>.</p>
-        <h3>Wat je invoert</h3>
-        <p>Je voert een boektitel, ISBN, of URL in van bol.com, Amazon, Goodreads of Open Library. BookCompass haalt automatisch de metadata op: titel, auteur, jaar en onderwerpen.</p>
-        <h3>Wat er achter de schermen gebeurt</h3>
-        <p>Een AI-model analyseert jouw boek en zoekt naar de beste overeenkomsten op basis van thematiek en schrijfstijl. Je kunt zelf instellen hoeveel gewicht je geeft aan schrijfstijl versus thema.</p>
-        <h3>De aanbevelingen</h3>
-        <p>Je krijgt een lijst van boeken gerangschikt op overeenkomst, elk met een korte uitleg waarom dit boek bij jou past. Via de knoppen kun je ze direct opzoeken bij bol.com of Amazon.</p>
-      </>
-    ),
-  },
-  disclaimer: {
-    title: 'Disclaimer',
-    content: (
-      <>
-        <p>BookCompass is een persoonlijk project en wordt aangeboden zoals het is, zonder enige garantie op volledigheid of nauwkeurigheid van de aanbevelingen.</p>
-        <p>De informatie over boeken (titels, auteurs, covers) is afkomstig van <a href="https://openlibrary.org" target="_blank" rel="noopener noreferrer">Open Library</a>, een open databron. BookCompass heeft geen commerciële binding met Open Library, bol.com of Amazon.</p>
-        <p>Links naar externe winkels zijn gemakshalve toegevoegd. BookCompass ontvangt geen vergoeding voor doorklikken of aankopen.</p>
-      </>
-    ),
-  },
-  privacy: {
-    title: 'Privacybeleid',
-    content: (
-      <>
-        <p>BookCompass verzamelt geen persoonlijke gegevens. Er is geen account, geen login en geen tracking.</p>
-        <h3>Wat we verwerken</h3>
-        <p>De Open Library URL die je invoert wordt alleen gebruikt om je zoekopdracht uit te voeren en wordt niet opgeslagen na het verwerken van je verzoek.</p>
-        <h3>Cookies</h3>
-        <p>BookCompass gebruikt geen cookies of andere trackingmethoden.</p>
-        <h3>Externe diensten</h3>
-        <p>De pagina laadt lettertypen via Google Fonts. Hierbij wordt je IP-adres gedeeld met Google. Raadpleeg het <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">privacybeleid van Google</a> voor meer informatie.</p>
-      </>
-    ),
-  },
+function getModals(t) {
+  return {
+    howItWorks: {
+      title: t('modals.howItWorks.title'),
+      content: (
+        <>
+          <p>{t('modals.howItWorks.intro')}</p>
+          <h3>{t('modals.howItWorks.inputHeading')}</h3>
+          <p>{t('modals.howItWorks.inputText')}</p>
+          <h3>{t('modals.howItWorks.behindScenesHeading')}</h3>
+          <p>{t('modals.howItWorks.behindScenesText')}</p>
+          <h3>{t('modals.howItWorks.recommendationsHeading')}</h3>
+          <p>{t('modals.howItWorks.recommendationsText')}</p>
+        </>
+      ),
+    },
+    disclaimer: {
+      title: t('modals.disclaimer.title'),
+      content: (
+        <>
+          <p>{t('modals.disclaimer.p1')}</p>
+          <p>
+            {t('modals.disclaimer.p2Start')}
+            <a href="https://openlibrary.org" target="_blank" rel="noopener noreferrer">
+              {t('modals.disclaimer.p2Link')}
+            </a>
+            {t('modals.disclaimer.p2End')}
+          </p>
+          <p>{t('modals.disclaimer.p3')}</p>
+        </>
+      ),
+    },
+    privacy: {
+      title: t('modals.privacy.title'),
+      content: (
+        <>
+          <p>{t('modals.privacy.p1')}</p>
+          <h3>{t('modals.privacy.verwerkenHeading')}</h3>
+          <p>{t('modals.privacy.verwerkenText')}</p>
+          <h3>{t('modals.privacy.cookiesHeading')}</h3>
+          <p>{t('modals.privacy.cookiesText')}</p>
+          <h3>{t('modals.privacy.externalHeading')}</h3>
+          <p>
+            {t('modals.privacy.externalTextStart')}
+            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">
+              {t('modals.privacy.externalTextLink')}
+            </a>
+            {t('modals.privacy.externalTextEnd')}
+          </p>
+        </>
+      ),
+    },
+  }
+}
+
+function LanguageSwitcher() {
+  const { i18n } = useTranslation()
+  const lang = i18n.language
+
+  function toggle(lng) {
+    i18n.changeLanguage(lng)
+    localStorage.setItem('lang', lng)
+    document.documentElement.lang = lng
+  }
+
+  return (
+    <div className="lang-switcher">
+      <button
+        className={`lang-btn${lang === 'nl' ? ' active' : ''}`}
+        onClick={() => toggle('nl')}
+        aria-label="Nederlands"
+      >NL</button>
+      <span className="lang-sep">|</span>
+      <button
+        className={`lang-btn${lang === 'en' ? ' active' : ''}`}
+        onClick={() => toggle('en')}
+        aria-label="English"
+      >EN</button>
+    </div>
+  )
 }
 
 function InfoSheet({ onClose }) {
+  const { t } = useTranslation()
   const sheetRef = useRef(null)
   const startY = useRef(null)
   const currentDelta = useRef(0)
   const [closing, setClosing] = useState(false)
   const [activeSubModal, setActiveSubModal] = useState(null)
+
+  const MODALS = getModals(t)
 
   const dismiss = () => {
     if (closing) return
@@ -103,17 +148,17 @@ function InfoSheet({ onClose }) {
 
         <div className="info-sheet-body">
           <section className="info-section">
-            <h2>Hoe werkt BookCompass?</h2>
-            <p>Voer een boektitel, ISBN of URL in van bol.com, Amazon, Goodreads of Open Library. BookCompass haalt de metadata op en gebruikt AI om boeken te vinden die qua thematiek en schrijfstijl het best bij jou passen — niet op basis van populariteit, maar op gevoel.</p>
-            <p>Met de schuifregelaar stel je zelf in hoeveel gewicht je geeft aan schrijfstijl versus thema. Je krijgt een gerangschikte lijst met een korte uitleg per aanbeveling.</p>
+            <h2>{t('sheet.howItWorksTitle')}</h2>
+            <p>{t('sheet.p1')}</p>
+            <p>{t('sheet.p2')}</p>
           </section>
 
           <div className="info-sheet-footer">
-            <span className="info-sheet-copyright">© {new Date().getFullYear()} BookCompass</span>
+            <span className="info-sheet-copyright">{t('footer.copyright', { year: new Date().getFullYear() })}</span>
             <div className="info-sheet-links">
-              <button className="info-sheet-privacy-btn" onClick={() => setActiveSubModal('disclaimer')}>Disclaimer</button>
+              <button className="info-sheet-privacy-btn" onClick={() => setActiveSubModal('disclaimer')}>{t('footer.disclaimer')}</button>
               <span className="footer-sep">·</span>
-              <button className="info-sheet-privacy-btn" onClick={() => setActiveSubModal('privacy')}>Privacybeleid</button>
+              <button className="info-sheet-privacy-btn" onClick={() => setActiveSubModal('privacy')}>{t('footer.privacy')}</button>
             </div>
           </div>
         </div>
@@ -126,7 +171,7 @@ function InfoSheet({ onClose }) {
             <button
               className="modal-close"
               onClick={() => setActiveSubModal(null)}
-              aria-label="Sluiten"
+              aria-label={t('footer.closeLabel')}
             >
               <svg viewBox="0 0 20 20" fill="none">
                 <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -143,24 +188,30 @@ function InfoSheet({ onClose }) {
 }
 
 export default function Footer() {
+  const { t } = useTranslation()
   const [activeModal, setActiveModal] = useState(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+
+  const MODALS = getModals(t)
   const modal = activeModal ? MODALS[activeModal] : null
 
   return (
     <>
-      {/* Reguliere footer (verborgen in standalone PWA via CSS) */}
+      {/* Regular footer (hidden in standalone PWA via CSS) */}
       <footer className="app-footer">
-        <span className="footer-copyright">© {new Date().getFullYear()} BookCompass</span>
+        <span className="footer-copyright">{t('footer.copyright', { year: new Date().getFullYear() })}</span>
         <span className="footer-sep">·</span>
-        <button className="footer-link" onClick={() => setActiveModal('howItWorks')}>Hoe werkt het?</button>
+        <button className="footer-link" onClick={() => setActiveModal('howItWorks')}>{t('footer.howItWorks')}</button>
         <span className="footer-sep">·</span>
-        <button className="footer-link" onClick={() => setActiveModal('disclaimer')}>Disclaimer</button>
+        <button className="footer-link" onClick={() => setActiveModal('disclaimer')}>{t('footer.disclaimer')}</button>
         <span className="footer-sep">·</span>
-        <button className="footer-link" onClick={() => setActiveModal('privacy')}>Privacybeleid</button>
+        <button className="footer-link" onClick={() => setActiveModal('privacy')}>{t('footer.privacy')}</button>
       </footer>
 
-      {/* Info-knop alleen zichtbaar in standalone PWA */}
+      {/* Language switcher — fixed top-right on desktop, next to info button on mobile */}
+      <LanguageSwitcher />
+
+      {/* Info button only visible in standalone PWA */}
       <button
         className="pwa-info-btn"
         onClick={() => {
@@ -182,7 +233,7 @@ export default function Footer() {
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{modal.title}</h2>
-              <button className="modal-close" onClick={() => setActiveModal(null)} aria-label="Sluiten">
+              <button className="modal-close" onClick={() => setActiveModal(null)} aria-label={t('footer.closeLabel')}>
                 <svg viewBox="0 0 20 20" fill="none">
                   <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>

@@ -1,0 +1,73 @@
+{
+  "tagline": "Navigate by feel. Find your next book.",
+  "loadingText": "Analyzing and searching\u2026",
+  "errorLabel": "Error:",
+  "form": {
+    "label": "Search book",
+    "placeholder": "Title, ISBN, bol.com, Amazon or Open Library URL",
+    "loadingInfo": "Fetching book info\u2026",
+    "subjectQuestion": "What appeals to you about",
+    "subjectHint": "Click to select",
+    "subjectCount_one": "{{count}} theme selected",
+    "subjectCount_other": "{{count}} themes selected",
+    "infoError": "Could not fetch book info",
+    "sliderLabel": "Recommendation focus",
+    "sliderTopic": "Topic",
+    "sliderStyle": "Writing style",
+    "submit": "Get recommendations",
+    "searching": "Searching\u2026"
+  },
+  "results": {
+    "noResults": "No results found.",
+    "basedOn": "Based on",
+    "recommendations": "recommendations",
+    "description": "Description",
+    "whyThisBook": "Why this book?",
+    "buyBol": "Buy at bol.com",
+    "buyAmazon": "Amazon"
+  },
+  "footer": {
+    "howItWorks": "How does it work?",
+    "disclaimer": "Disclaimer",
+    "privacy": "Privacy policy",
+    "copyright": "\u00a9 {{year}} BookCompass",
+    "closeLabel": "Close"
+  },
+  "modals": {
+    "howItWorks": {
+      "title": "How does BookCompass work?",
+      "intro": "BookCompass helps you discover books similar to one you already know and love \u2014 not based on popularity or genre labels, but based on how a book feels.",
+      "inputHeading": "What you enter",
+      "inputText": "You enter a book title, ISBN, or URL from bol.com, Amazon, Goodreads or Open Library. BookCompass automatically retrieves the metadata: title, author, year and subjects.",
+      "behindScenesHeading": "What happens behind the scenes",
+      "behindScenesText": "An AI model analyzes your book and searches for the best matches based on themes and writing style. You can set how much weight you give to writing style vs. theme.",
+      "recommendationsHeading": "The recommendations",
+      "recommendationsText": "You get a list of books ranked by similarity, each with a short explanation of why this book suits you. Using the buttons you can look them up directly at bol.com or Amazon."
+    },
+    "disclaimer": {
+      "title": "Disclaimer",
+      "p1": "BookCompass is a personal project and is provided as-is, without any guarantee of completeness or accuracy of the recommendations.",
+      "p2Start": "Information about books (titles, authors, covers) comes from ",
+      "p2Link": "Open Library",
+      "p2End": ", an open data source. BookCompass has no commercial relationship with Open Library, bol.com or Amazon.",
+      "p3": "Links to external stores are provided for convenience. BookCompass does not receive compensation for clicks or purchases."
+    },
+    "privacy": {
+      "title": "Privacy policy",
+      "p1": "BookCompass does not collect personal data. There is no account, no login and no tracking.",
+      "verwerkenHeading": "What we process",
+      "verwerkenText": "The Open Library URL you enter is only used to execute your search query and is not stored after processing your request.",
+      "cookiesHeading": "Cookies",
+      "cookiesText": "BookCompass does not use cookies or other tracking methods.",
+      "externalHeading": "External services",
+      "externalTextStart": "The page loads fonts via Google Fonts. This shares your IP address with Google. Consult ",
+      "externalTextLink": "Google's privacy policy",
+      "externalTextEnd": " for more information."
+    }
+  },
+  "sheet": {
+    "howItWorksTitle": "How does BookCompass work?",
+    "p1": "Enter a book title, ISBN or URL from bol.com, Amazon, Goodreads or Open Library. BookCompass retrieves the metadata and uses AI to find books that match your reading style and themes \u2014 not based on popularity, but on feeling.",
+    "p2": "Use the slider to set how much weight you give to writing style vs. theme. You get a ranked list with a short explanation per recommendation."
+  }
+}

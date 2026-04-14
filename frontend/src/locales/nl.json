@@ -1,0 +1,73 @@
+{
+  "tagline": "Navigate by feel. Find your next book.",
+  "loadingText": "Analyzing and searching\u2026",
+  "errorLabel": "Fout:",
+  "form": {
+    "label": "Boek zoeken",
+    "placeholder": "Titel, ISBN, bol.com, Amazon of Open Library URL",
+    "loadingInfo": "Boekinfo ophalen\u2026",
+    "subjectQuestion": "Wat spreekt je aan in",
+    "subjectHint": "Klik om te selecteren",
+    "subjectCount_one": "{{count}} thema geselecteerd",
+    "subjectCount_other": "{{count}} thema's geselecteerd",
+    "infoError": "Kon geen boekinfo ophalen",
+    "sliderLabel": "Aanbevelingsfocus",
+    "sliderTopic": "Onderwerp",
+    "sliderStyle": "Schrijfstijl",
+    "submit": "Aanbevelingen ophalen",
+    "searching": "Zoeken\u2026"
+  },
+  "results": {
+    "noResults": "Geen resultaten gevonden.",
+    "basedOn": "Gebaseerd op",
+    "recommendations": "aanbevelingen",
+    "description": "Beschrijving",
+    "whyThisBook": "Waarom dit boek?",
+    "buyBol": "Kopen bij bol.com",
+    "buyAmazon": "Amazon"
+  },
+  "footer": {
+    "howItWorks": "Hoe werkt het?",
+    "disclaimer": "Disclaimer",
+    "privacy": "Privacybeleid",
+    "copyright": "\u00a9 {{year}} BookCompass",
+    "closeLabel": "Sluiten"
+  },
+  "modals": {
+    "howItWorks": {
+      "title": "Hoe werkt BookCompass?",
+      "intro": "BookCompass helpt je boeken te ontdekken die lijken op een boek dat je al kent en waardeert \u2014 niet op basis van populariteit of genre-labels, maar op basis van hoe een boek voelt.",
+      "inputHeading": "Wat je invoert",
+      "inputText": "Je voert een boektitel, ISBN, of URL in van bol.com, Amazon, Goodreads of Open Library. BookCompass haalt automatisch de metadata op: titel, auteur, jaar en onderwerpen.",
+      "behindScenesHeading": "Wat er achter de schermen gebeurt",
+      "behindScenesText": "Een AI-model analyseert jouw boek en zoekt naar de beste overeenkomsten op basis van thematiek en schrijfstijl. Je kunt zelf instellen hoeveel gewicht je geeft aan schrijfstijl versus thema.",
+      "recommendationsHeading": "De aanbevelingen",
+      "recommendationsText": "Je krijgt een lijst van boeken gerangschikt op overeenkomst, elk met een korte uitleg waarom dit boek bij jou past. Via de knoppen kun je ze direct opzoeken bij bol.com of Amazon."
+    },
+    "disclaimer": {
+      "title": "Disclaimer",
+      "p1": "BookCompass is een persoonlijk project en wordt aangeboden zoals het is, zonder enige garantie op volledigheid of nauwkeurigheid van de aanbevelingen.",
+      "p2Start": "De informatie over boeken (titels, auteurs, covers) is afkomstig van ",
+      "p2Link": "Open Library",
+      "p2End": ", een open databron. BookCompass heeft geen commerci\u00eble binding met Open Library, bol.com of Amazon.",
+      "p3": "Links naar externe winkels zijn gemakshalve toegevoegd. BookCompass ontvangt geen vergoeding voor doorklikken of aankopen."
+    },
+    "privacy": {
+      "title": "Privacybeleid",
+      "p1": "BookCompass verzamelt geen persoonlijke gegevens. Er is geen account, geen login en geen tracking.",
+      "verwerkenHeading": "Wat we verwerken",
+      "verwerkenText": "De Open Library URL die je invoert wordt alleen gebruikt om je zoekopdracht uit te voeren en wordt niet opgeslagen na het verwerken van je verzoek.",
+      "cookiesHeading": "Cookies",
+      "cookiesText": "BookCompass gebruikt geen cookies of andere trackingmethoden.",
+      "externalHeading": "Externe diensten",
+      "externalTextStart": "De pagina laadt lettertypen via Google Fonts. Hierbij wordt je IP-adres gedeeld met Google. Raadpleeg het ",
+      "externalTextLink": "privacybeleid van Google",
+      "externalTextEnd": " voor meer informatie."
+    }
+  },
+  "sheet": {
+    "howItWorksTitle": "Hoe werkt BookCompass?",
+    "p1": "Voer een boektitel, ISBN of URL in van bol.com, Amazon, Goodreads of Open Library. BookCompass haalt de metadata op en gebruikt AI om boeken te vinden die qua thematiek en schrijfstijl het best bij jou passen \u2014 niet op basis van populariteit, maar op gevoel.",
+    "p2": "Met de schuifregelaar stel je zelf in hoeveel gewicht je geeft aan schrijfstijl versus thema. Je krijgt een gerangschikte lijst met een korte uitleg per aanbeveling."
+  }
+}
