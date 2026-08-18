@@ -74,6 +74,9 @@ async def _enrich(title: str, author: str, client: httpx.AsyncClient) -> dict:
         return {}
 
 
+LANG_NAMES = {'nl': 'Dutch', 'en': 'English'}
+
+
 async def recommend(
     book_title: str,
     book_author: str,
@@ -83,9 +86,11 @@ async def recommend(
     topic_weight: float = 3.0,
     selected_subjects: list[str] | None = None,
     k: int = 10,
+    lang: str = 'nl',
 ) -> list[Recommendation]:
 
     groq_client = AsyncGroq(api_key=os.getenv('GROQ_API_KEY'))
+    lang_name = LANG_NAMES.get(lang, LANG_NAMES['nl'])
 
     # Vertaal slider (1-5) direct naar een expliciete focusinstructie
     style_level = round(style_weight)  # 1-5
@@ -119,14 +124,14 @@ Rules:
 - Do NOT recommend "{book_title}" itself
 - Include both well-known and lesser-known books
 - Vary the time periods and geographic origins
-- The "reason" field must be in Dutch (2-3 sentences explaining why this book fits)
+- The "reason" field must be in {lang_name} (2-3 sentences explaining why this book fits)
 
 Return ONLY a valid JSON array, no other text:
 [
   {{
     "title": "Book Title",
     "author": "Author Name",
-    "reason": "Nederlandse uitleg waarom dit boek aansluit bij het invoerboek."
+    "reason": "{lang_name} explanation of why this book fits the input book."
   }}
 ]"""
 

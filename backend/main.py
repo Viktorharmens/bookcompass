@@ -49,6 +49,7 @@ class RecommendRequest(BaseModel):
     style_weight: float = 3.0
     topic_weight: float = 3.0
     selected_subjects: list[str] = []
+    lang: str = "nl"
 
     @field_validator("style_weight", "topic_weight")
     @classmethod
@@ -116,6 +117,7 @@ async def get_recommendations(req: RecommendRequest):
             topic_weight=req.topic_weight,
             selected_subjects=req.selected_subjects,
             k=10,
+            lang=req.lang,
         )
     except Exception:
         raise HTTPException(status_code=500, detail=traceback.format_exc())
