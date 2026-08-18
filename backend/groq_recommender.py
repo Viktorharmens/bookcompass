@@ -2,7 +2,7 @@
 groq_recommender.py — Aanbevelingen via Groq LLM + Google Books verrijking.
 
 Workflow:
-  1. Stuur boekmetadata naar Groq (Llama 3.3 70B)
+  1. Stuur boekmetadata naar Groq (GPT-OSS 120B)
   2. Groq geeft een JSON-lijst terug met aanbevelingen + Nederlandse uitleg
   3. Verrijk elk resultaat concurrent met covers en metadata via Google Books API
 """
@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-GROQ_MODEL = 'llama-3.3-70b-versatile'
+GROQ_MODEL = 'openai/gpt-oss-120b'
 
 
 @dataclass
