@@ -15,7 +15,7 @@ function buyLinks(title, author) {
   return { amazon, bol }
 }
 
-function BookCard({ book, rank }) {
+function BookCard({ book }) {
   const { t } = useTranslation()
   const [descOpen, setDescOpen] = useState(false)
   const olUrl           = `https://openlibrary.org${book.ol_key}`
@@ -106,7 +106,7 @@ export default function ResultsList({ books, queryBook }) {
       )}
 
       <div className="results-list">
-        {books.map((book, i) => <BookCard key={book.ol_key + i} book={book} rank={i + 1} />)}
+        {books.map((book, i) => <BookCard key={book.ol_key + i} book={book} />)}
       </div>
     </>
   )
