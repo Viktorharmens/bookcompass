@@ -14,6 +14,7 @@ Invoer voor /book-info en /recommend (veld "url") kan zijn:
 """
 
 import traceback
+from typing import Literal
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
@@ -50,6 +51,7 @@ class RecommendRequest(BaseModel):
     topic_weight: float = 3.0
     selected_subjects: list[str] = []
     lang: str = "nl"
+    heaviness: Literal["light", "any", "heavy"] = "any"
 
     @field_validator("style_weight", "topic_weight")
     @classmethod
@@ -118,6 +120,7 @@ async def get_recommendations(req: RecommendRequest):
             selected_subjects=req.selected_subjects,
             k=10,
             lang=req.lang,
+            heaviness=req.heaviness,
         )
     except Exception:
         raise HTTPException(status_code=500, detail=traceback.format_exc())

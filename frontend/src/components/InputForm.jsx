@@ -21,10 +21,41 @@ function FocusSlider({ value, onChange }) {
   )
 }
 
+const HEAVINESS_OPTIONS = [
+  { value: 'light', key: 'form.heavinessLight' },
+  { value: 'any',   key: 'form.heavinessAny' },
+  { value: 'heavy', key: 'form.heavinessHeavy' },
+]
+
+function HeavinessSlider({ value, onChange }) {
+  const { t } = useTranslation()
+  const index = HEAVINESS_OPTIONS.findIndex(opt => opt.value === value)
+  return (
+    <div className="slider-group">
+      <div className="slider-endpoints">
+        {HEAVINESS_OPTIONS.map(opt => (
+          <span key={opt.value} className={`slider-endpoint${value === opt.value ? ' active' : ''}`}>
+            {t(opt.key)}
+          </span>
+        ))}
+      </div>
+      <input
+        type="range" min="0" max={HEAVINESS_OPTIONS.length - 1} step="1"
+        value={index}
+        onChange={e => onChange(HEAVINESS_OPTIONS[Number(e.target.value)].value)}
+        aria-label={t('form.heavinessLabel')}
+        aria-valuetext={t(HEAVINESS_OPTIONS[index].key)}
+        className="slider"
+      />
+    </div>
+  )
+}
+
 export default function InputForm({ onSubmit, onClear, loading }) {
   const { t } = useTranslation()
   const [query, setQuery]                    = useState('')
   const [styleWeight, setStyleWeight]        = useState(3)
+  const [heaviness, setHeaviness]            = useState('any')
   const [bookInfo, setBookInfo]              = useState(null)
   const [selectedSubjects, setSelected]      = useState([])
   const [loadingInfo, setLoadingInfo]        = useState(false)
@@ -87,7 +118,7 @@ export default function InputForm({ onSubmit, onClear, loading }) {
     e.preventDefault()
     if (!isValid || loading) return
     inputRef.current?.blur()
-    onSubmit({ url: query.trim(), styleWeight, selectedSubjects })
+    onSubmit({ url: query.trim(), styleWeight, selectedSubjects, heaviness })
   }
 
   return (
@@ -174,6 +205,11 @@ export default function InputForm({ onSubmit, onClear, loading }) {
       <div className="focus-slider-section">
         <span className="focus-slider-label">{t('form.sliderLabel')}</span>
         <FocusSlider value={styleWeight} onChange={setStyleWeight} />
+      </div>
+
+      <div className="focus-slider-section">
+        <span className="focus-slider-label">{t('form.heavinessLabel')}</span>
+        <HeavinessSlider value={heaviness} onChange={setHeaviness} />
       </div>
 
       <button type="submit" className="submit-btn" disabled={!isValid || loading}>
