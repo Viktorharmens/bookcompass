@@ -154,7 +154,8 @@ Return ONLY a valid JSON array, no other text:
         model=GROQ_MODEL,
         messages=[{'role': 'user', 'content': prompt}],
         temperature=0.7,
-        max_tokens=2048,
+        max_tokens=3000,
+        reasoning_effort='low',
     )
 
     raw = response.choices[0].message.content.strip()
