@@ -17,7 +17,7 @@ export default function App() {
     document.documentElement.lang = i18n.language
   }, [i18n.language])
 
-  async function handleSubmit({ url, styleWeight, selectedSubjects }) {
+  async function handleSubmit({ url, styleWeight, selectedSubjects, heaviness }) {
     setLoading(true)
     setError(null)
 
@@ -25,7 +25,7 @@ export default function App() {
       const res = await fetch('/api/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, style_weight: styleWeight, topic_weight: 3, selected_subjects: selectedSubjects, lang: i18n.language }),
+        body: JSON.stringify({ url, style_weight: styleWeight, topic_weight: 3, selected_subjects: selectedSubjects, heaviness, lang: i18n.language }),
       })
       if (!res.ok) {
         const data = await res.json()

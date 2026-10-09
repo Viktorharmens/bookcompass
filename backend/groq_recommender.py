@@ -87,6 +87,7 @@ async def recommend(
     selected_subjects: list[str] | None = None,
     k: int = 10,
     lang: str = 'nl',
+    heaviness: str = 'any',
 ) -> list[Recommendation]:
 
     groq_client = AsyncGroq(api_key=os.getenv('GROQ_API_KEY'))
@@ -105,6 +106,20 @@ async def recommend(
     else:
         focus = "Focus strongly on similar writing style, tone, prose, and narrative voice. Themes are less important."
 
+    # Zwaarte van de inhoud: licht = luchtig, zwaar = heftiger mag (maar niet per se loodzwaar)
+    if heaviness == 'light':
+        heaviness_note = (
+            "\nThe user wants a light read: only recommend light-hearted, uplifting or easy-going books. "
+            "Avoid books centred on heavy themes such as war, abuse, violence, grief, suicide or trauma."
+        )
+    elif heaviness == 'heavy':
+        heaviness_note = (
+            "\nThe user is open to a heavier read: prefer books with real emotional weight and more intense themes "
+            "(e.g. loss, trauma, war, moral conflict). They do not all need to be relentlessly dark."
+        )
+    else:
+        heaviness_note = ''
+
     subjects_str = ', '.join(book_subjects[:8]) if book_subjects else 'not specified'
     selected_note = (
         f'\nThe user is especially interested in: {", ".join(selected_subjects)}.'
@@ -117,7 +132,7 @@ Book: "{book_title}" by {book_author}
 Genres/subjects: {subjects_str}
 Description: {book_description[:600]}
 
-{focus}{selected_note}
+{focus}{selected_note}{heaviness_note}
 
 Rules:
 - Do NOT recommend books by {book_author}

@@ -14,6 +14,10 @@
     "sliderLabel": "Recommendation focus",
     "sliderTopic": "Topic",
     "sliderStyle": "Writing style",
+    "heavinessLabel": "Content intensity",
+    "heavinessLight": "Light",
+    "heavinessAny": "No preference",
+    "heavinessHeavy": "Heavy",
     "submit": "Get recommendations",
     "searching": "Searching\u2026"
   },
@@ -40,7 +44,7 @@
       "inputHeading": "What you enter",
       "inputText": "You enter a book title, ISBN, or URL from bol.com, Amazon, Goodreads or Open Library. BookCompass automatically retrieves the metadata: title, author, year and subjects.",
       "behindScenesHeading": "What happens behind the scenes",
-      "behindScenesText": "An AI model analyzes your book and searches for the best matches based on themes and writing style. You can set how much weight you give to writing style vs. theme.",
+      "behindScenesText": "An AI model analyzes your book and searches for the best matches based on themes and writing style. You can set how much weight you give to writing style vs. theme. You can also choose whether you want a light-hearted read or something heavier with more intense themes.",
       "recommendationsHeading": "The recommendations",
       "recommendationsText": "You get a list of books ranked by similarity, each with a short explanation of why this book suits you. Using the buttons you can look them up directly at bol.com or Amazon."
     },
@@ -68,6 +72,6 @@
   "sheet": {
     "howItWorksTitle": "How does BookCompass work?",
     "p1": "Enter a book title, ISBN or URL from bol.com, Amazon, Goodreads or Open Library. BookCompass retrieves the metadata and uses AI to find books that match your reading style and themes \u2014 not based on popularity, but on feeling.",
-    "p2": "Use the slider to set how much weight you give to writing style vs. theme. You get a ranked list with a short explanation per recommendation."
+    "p2": "Use the slider to set how much weight you give to writing style vs. theme. You get a ranked list with a short explanation per recommendation. You can also choose whether the content should be light or may be heavier."
   }
 }

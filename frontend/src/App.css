@@ -236,6 +236,34 @@
   height: 4px;
 }
 
+/* ── Zwaarte van de inhoud ── */
+.heaviness-toggle {
+  display: flex;
+  gap: 8px;
+}
+.heaviness-option {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border: 1.5px solid #d0e0ec;
+  background: #fff;
+  color: #2d5068;
+  transition: all 0.15s;
+}
+.heaviness-option:hover {
+  border-color: #10466c;
+  color: #10466c;
+}
+.heaviness-option.selected {
+  background: #10466c;
+  border-color: #10466c;
+  color: #fff;
+}
+
 /* ── Submit ── */
 .submit-btn {
   width: 100%;

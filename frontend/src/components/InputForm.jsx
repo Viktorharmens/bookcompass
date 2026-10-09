@@ -21,10 +21,37 @@ function FocusSlider({ value, onChange }) {
   )
 }
 
+const HEAVINESS_OPTIONS = [
+  { value: 'light', key: 'form.heavinessLight' },
+  { value: 'any',   key: 'form.heavinessAny' },
+  { value: 'heavy', key: 'form.heavinessHeavy' },
+]
+
+function HeavinessToggle({ value, onChange }) {
+  const { t } = useTranslation()
+  return (
+    <div className="heaviness-toggle" role="radiogroup" aria-label={t('form.heavinessLabel')}>
+      {HEAVINESS_OPTIONS.map(opt => (
+        <button
+          key={opt.value}
+          type="button"
+          role="radio"
+          aria-checked={value === opt.value}
+          className={`heaviness-option${value === opt.value ? ' selected' : ''}`}
+          onClick={() => onChange(opt.value)}
+        >
+          {t(opt.key)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function InputForm({ onSubmit, onClear, loading }) {
   const { t } = useTranslation()
   const [query, setQuery]                    = useState('')
   const [styleWeight, setStyleWeight]        = useState(3)
+  const [heaviness, setHeaviness]            = useState('any')
   const [bookInfo, setBookInfo]              = useState(null)
   const [selectedSubjects, setSelected]      = useState([])
   const [loadingInfo, setLoadingInfo]        = useState(false)
@@ -87,7 +114,7 @@ export default function InputForm({ onSubmit, onClear, loading }) {
     e.preventDefault()
     if (!isValid || loading) return
     inputRef.current?.blur()
-    onSubmit({ url: query.trim(), styleWeight, selectedSubjects })
+    onSubmit({ url: query.trim(), styleWeight, selectedSubjects, heaviness })
   }
 
   return (
@@ -174,6 +201,11 @@ export default function InputForm({ onSubmit, onClear, loading }) {
       <div className="focus-slider-section">
         <span className="focus-slider-label">{t('form.sliderLabel')}</span>
         <FocusSlider value={styleWeight} onChange={setStyleWeight} />
+      </div>
+
+      <div className="focus-slider-section">
+        <span className="focus-slider-label">{t('form.heavinessLabel')}</span>
+        <HeavinessToggle value={heaviness} onChange={setHeaviness} />
       </div>
 
       <button type="submit" className="submit-btn" disabled={!isValid || loading}>
