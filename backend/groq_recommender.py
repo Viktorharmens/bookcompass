@@ -11,6 +11,7 @@ import asyncio
 import json
 import os
 import re
+import unicodedata
 import httpx
 from dataclasses import dataclass
 from groq import AsyncGroq
@@ -43,6 +44,19 @@ def _parse_year(value) -> int | None:
     return None
 
 
+def _norm(value: str) -> str:
+    return re.sub(r'[^a-z0-9]', '', unicodedata.normalize('NFKD', value or '').encode('ascii', 'ignore').decode().lower())
+
+
+def _same_book(title: str, author: str, doc: dict) -> bool:
+    """Klopt het Open Library-resultaat echt bij de gevraagde titel en auteur?"""
+    wanted, found = _norm(title), _norm(doc.get('title', ''))
+    if not wanted or not found or not (found.startswith(wanted) or wanted.startswith(found)):
+        return False
+    surname = _norm((author or '').split()[-1]) if author and author.split() else ''
+    return bool(surname) and any(surname in _norm(name) for name in doc.get('author_name', []))
+
+
 async def _enrich(title: str, author: str, client: httpx.AsyncClient) -> dict:
     """Haal cover, beschrijving en metadata op via Open Library Search API."""
     query = f'{title} {author}'
@@ -58,6 +72,9 @@ async def _enrich(title: str, author: str, client: httpx.AsyncClient) -> dict:
         if not docs:
             return {}
         doc = docs[0]
+        # Zonder overeenkomende titel en auteur is het vrijwel zeker een verzonnen boek.
+        if not _same_book(title, author, doc):
+            return {}
         cover_id = doc.get('cover_i')
         cover = f'https://covers.openlibrary.org/b/id/{cover_id}-M.jpg' if cover_id else None
         isbns = doc.get('isbn', [])
@@ -126,7 +143,7 @@ async def recommend(
         if selected_subjects else ''
     )
 
-    prompt = f"""You are an expert book recommender. Recommend {k} books similar to the one below.
+    prompt = f"""You are an expert book recommender. Recommend up to {k} existing, published books similar to the one below.
 
 Book: "{book_title}" by {book_author}
 Genres/subjects: {subjects_str}
@@ -137,6 +154,10 @@ Description: {book_description[:600]}
 Rules:
 - Do NOT recommend books by {book_author}
 - Do NOT recommend "{book_title}" itself
+- Only recommend real, published books that you are certain exist, with the exact original title and the correct author
+- Never invent, translate or guess a title. If you are unsure whether a book exists or who wrote it, leave it out
+- Returning fewer than {k} books is fine and much better than including a book that does not exist
+- Use the title as published (the Dutch title only if the book was actually published in Dutch under that title)
 - Include both well-known and lesser-known books
 - Vary the time periods and geographic origins
 - The "reason" field must be in {lang_name} (2-3 sentences explaining why this book fits)
@@ -153,7 +174,7 @@ Return ONLY a valid JSON array, no other text:
     response = await groq_client.chat.completions.create(
         model=GROQ_MODEL,
         messages=[{'role': 'user', 'content': prompt}],
-        temperature=0.7,
+        temperature=0.4,
         max_tokens=3000,
         reasoning_effort='low',
     )
@@ -176,8 +197,11 @@ Return ONLY a valid JSON array, no other text:
             _enrich(b['title'], b['author'], http) for b in valid
         ))
 
+    # Alleen boeken die Open Library kent: liever minder aanbevelingen dan verzonnen titels.
+    found = [(item, meta) for item, meta in zip(valid, metas) if meta.get('ol_key')]
+
     results = []
-    for i, (item, meta) in enumerate(zip(valid, metas)):
+    for i, (item, meta) in enumerate(found):
         results.append(Recommendation(
             title=item['title'].strip(),
             author=item['author'].strip(),
