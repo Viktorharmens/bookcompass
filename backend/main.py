@@ -19,7 +19,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
 
-from scraper import fetch_book
+from scraper import fetch_book, SourceUnavailable
 import groq_recommender
 
 app = FastAPI(title="BookCompass API", version="1.0.0")
@@ -69,6 +69,11 @@ class BookResult(BaseModel):
     score: float
     explanation: str
     year: int | None = None
+    dutch_title: str | None = None
+    original_language: str | None = None
+    # Waar het boek is gecontroleerd: "openlibrary" of "google_books" (dan is ol_key leeg).
+    source: str = "openlibrary"
+    source_id: str = ""
 
 
 class RecommendResponse(BaseModel):
@@ -87,6 +92,8 @@ async def health():
 async def get_book_info(req: BookInfoRequest):
     try:
         book = await fetch_book(req.url)
+    except SourceUnavailable:
+        raise HTTPException(status_code=502, detail="Open Library reageert niet; probeer het zo nog eens.")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -104,6 +111,8 @@ async def get_book_info(req: BookInfoRequest):
 async def get_recommendations(req: RecommendRequest):
     try:
         book = await fetch_book(req.url)
+    except SourceUnavailable:
+        raise HTTPException(status_code=502, detail="Open Library reageert niet; probeer het zo nog eens.")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -144,6 +153,10 @@ async def get_recommendations(req: RecommendRequest):
                 score=r.score,
                 explanation=r.explanation,
                 year=r.year,
+                dutch_title=r.dutch_title,
+                original_language=r.original_language,
+                source=r.source,
+                source_id=r.source_id,
             )
             for r in recs
         ],
