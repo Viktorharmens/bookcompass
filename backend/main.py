@@ -74,6 +74,7 @@ class BookResult(BaseModel):
     # Waar het boek is gecontroleerd: "openlibrary" of "google_books" (dan is ol_key leeg).
     source: str = "openlibrary"
     source_id: str = ""
+    isbn: str = ""
 
 
 class RecommendResponse(BaseModel):
@@ -157,6 +158,7 @@ async def get_recommendations(req: RecommendRequest):
                 original_language=r.original_language,
                 source=r.source,
                 source_id=r.source_id,
+                isbn=r.isbn,
             )
             for r in recs
         ],

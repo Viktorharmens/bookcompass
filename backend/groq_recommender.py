@@ -59,6 +59,7 @@ class Recommendation:
     original_language: str | None = None
     source: str = 'openlibrary'
     source_id: str = ''
+    isbn: str = ''
 
 
 def _parse_year(value) -> int | None:
@@ -210,6 +211,8 @@ async def _gb_lookup(title: str, dutch_title: str, author: str, client: httpx.As
                         'title': info.get('title', ''),
                         'author': next((a for a in info.get('authors', []) if _same_author(author, [a])), ''),
                         'source_id': item.get('id', ''),
+                        # ISBN-13, zodat WordPress er een eigen boekrecord van kan maken.
+                        'isbn': next((i['identifier'] for i in info.get('industryIdentifiers', []) if i.get('type') == 'ISBN_13'), ''),
                         'ol_key': '',
                         'subjects': info.get('categories', [])[:8],
                         'cover_url': thumb or None,
@@ -448,6 +451,7 @@ Return ONLY a JSON array:
             original_language=(item.get('lang') or '').lower()[:2] or None,
             source=meta.get('source', 'openlibrary'),
             source_id=meta.get('source_id', ''),
+            isbn=meta.get('isbn', ''),
         ))
 
     return results
