@@ -2,10 +2,14 @@
 groq_recommender.py — Aanbevelingen via Groq LLM, gecontroleerd tegen Open Library en Google Books.
 
 Workflow:
-  1. Vraag Groq (GPT-OSS 120B) om ongeveer 2 × k kandidaten, met jaar, originele taal en Nederlandse titel
-  2. Controleer elke kandidaat in Open Library (originele titel, daarna de Nederlandse titel)
-  3. Kandidaten zonder Open Library-record controleren we, alleen zolang er nog plekken vrij zijn, in Google Books
-  4. Kies de beste k: overwegend recente boeken, hooguit een paar klassiekers, en een paar Nederlandstalige boeken
+  1. Vraag Groq (GPT-OSS 120B) om meer kandidaten dan nodig (k + CANDIDATE_EXTRA), met jaar,
+     originele taal en (voor Nederlandse lezers) de titel van de Nederlandse vertaling
+  2. Controleer elke kandidaat concurrent: eerst Open Library, dan Google Books als terugval,
+     telkens eerst op de Nederlandse titel (dan is die bevestigd) en daarna op de originele titel.
+     Titel én auteur moeten kloppen; anders is het boek vrijwel zeker verzonnen.
+  3. Zijn er na controle minder dan k over, dan vragen we één keer bij (zonder de al genoemde titels)
+  4. Kies de beste k: overwegend recente boeken, hooguit een paar klassiekers, en bij Nederlandse
+     lezers een paar oorspronkelijk Nederlandstalige boeken
 """
 
 import asyncio
@@ -14,11 +18,13 @@ import json
 import logging
 import os
 import re
+import time
 import unicodedata
-import httpx
 from dataclasses import dataclass
-from groq import AsyncGroq
+
+import httpx
 from dotenv import load_dotenv
+from groq import AsyncGroq
 
 load_dotenv()
 
@@ -26,22 +32,23 @@ GROQ_MODEL = 'openai/gpt-oss-120b'
 
 log = logging.getLogger('uvicorn.error')
 
-# Zonder persoonsgegevens: Open Library vraagt om een herkenbare User-Agent.
+# Open Library vraagt om een herkenbare User-Agent (zonder persoonsgegevens).
 USER_AGENT = 'BookCompass/1.0 (https://bookcompass.nl)'
 
-# Zoveel meer kandidaten vragen we dan we tonen, omdat een deel de controle niet haalt.
-CANDIDATE_FACTOR = 2
-MAX_CANDIDATES = 20
+# Zoveel kandidaten meer vragen we dan we tonen, omdat een deel de controle niet haalt.
+CANDIDATE_EXTRA = 8
+# Bijvragen gebeurt maar één keer, en alleen als de eerste ronde snel genoeg was.
+REFILL_EXTRA = 6
+REFILL_BUDGET_SECONDS = 15.0
+# Open Library niet overbelasten: hooguit zoveel zoekopdrachten tegelijk.
+LOOKUP_CONCURRENCY = 8
+LOOKUP_TIMEOUT = 8
 
 # "Recent" = de laatste 25 jaar. Oudere boeken zijn klassiekers; daarvan tonen we er hooguit een paar.
 RECENT_YEARS = 25
 MAX_CLASSICS = 2
-
 # Bij Nederlandstalige bezoekers proberen we minstens zoveel oorspronkelijk Nederlandstalige boeken te tonen.
 MIN_DUTCH = 3
-
-# Open Library afremmen we niet: hooguit zoveel zoekopdrachten tegelijk.
-OL_CONCURRENCY = 5
 
 
 @dataclass
@@ -55,12 +62,16 @@ class Recommendation:
     score: float
     explanation: str
     year: int | None = None
+    # Titel van de Nederlandse vertaling (alleen als een bron die bevestigt) en originele taal (ISO 639-1).
     dutch_title: str | None = None
     original_language: str | None = None
+    # Waar het boek gecontroleerd is: "openlibrary" (ol_key gevuld) of "google_books" (source_id = volume-id).
     source: str = 'openlibrary'
     source_id: str = ''
     isbn: str = ''
 
+
+# ── Hulpfuncties voor vergelijken ─────────────────────────────────────────────
 
 def _parse_year(value) -> int | None:
     if isinstance(value, int):
@@ -71,35 +82,57 @@ def _parse_year(value) -> int | None:
     return None
 
 
+def _ascii(value: str) -> str:
+    return unicodedata.normalize('NFKD', value or '').encode('ascii', 'ignore').decode().lower()
+
+
+def _words(value: str) -> list[str]:
+    return re.findall(r'[a-z0-9]+', _ascii(value))
+
+
 def _norm(value: str) -> str:
-    return re.sub(r'[^a-z0-9]', '', unicodedata.normalize('NFKD', value or '').encode('ascii', 'ignore').decode().lower())
+    return ''.join(_words(value))
 
 
 def _surname(author: str) -> str:
-    parts = (author or '').replace(',', ' ').split()
-    return _norm(parts[-1]) if parts else ''
+    """Achternaam, genormaliseerd. 'Reve, Gerard' en 'Gerard Reve' geven allebei 'reve'."""
+    author = (author or '').strip()
+    if ',' in author:
+        author = author.split(',')[0]
+    words = _words(author)
+    return words[-1] if words else ''
 
 
-def _title_matches(wanted: str, found: str) -> bool:
-    """Titels kloppen als de een met de ander begint (ondertitels en 'Lijmen/Het been' tellen mee)."""
-    wanted, found = _norm(wanted), _norm(found)
-    return bool(wanted and found) and (found.startswith(wanted) or wanted.startswith(found))
+def _main_title(title: str) -> str:
+    """Titel zonder ondertitel ('Tirza: roman' -> 'Tirza')."""
+    return re.split(r'\s*[:;(\[]\s*|\s+[-–—]\s+', title or '', maxsplit=1)[0]
 
 
-def _same_author(author: str, found_authors: list[str]) -> bool:
+def title_matches(wanted: str, found: str) -> bool:
     """
-    De achternaam moet de achternaam van een gevonden auteur zijn (of de volledige naam gelijk).
-    Alleen 'zit erin' is te ruim: dan past "Graham Graham" op "Graham Greene".
+    Kloppen twee titels? Op woordniveau, zonder ondertitel, lidwoorden en accenten.
+    De ene titel mag de andere als begin hebben ('Lijmen' / 'Lijmen; Het been').
     """
-    surname = _surname(author)
-    return bool(surname) and any(
-        _surname(name) == surname or _norm(name) == _norm(author) for name in found_authors
-    )
+    a, b = _words(_main_title(wanted)), _words(_main_title(found))
+    articles = {'the', 'a', 'an', 'de', 'het', 'een', 'der', 'die', 'das', 'le', 'la', 'les', 'el'}
+    if len(a) > 1 and a[0] in articles:
+        a = a[1:]
+    if len(b) > 1 and b[0] in articles:
+        b = b[1:]
+    if not a or not b:
+        return False
+    short, long_ = (a, b) if len(a) <= len(b) else (b, a)
+    return long_[:len(short)] == short
 
 
-def _same_book(titles: list[str], author: str, found_title: str, found_authors: list[str]) -> bool:
-    """Klopt een gevonden record echt bij een van de gevraagde titels en de auteur?"""
-    return _same_author(author, found_authors) and any(_title_matches(t, found_title) for t in titles if t)
+def author_matches(wanted: str, found_authors: list[str]) -> bool:
+    """De achternaam moet gelijk zijn aan die van een gevonden auteur (niet alleen 'zit erin')."""
+    surname = _surname(wanted)
+    return bool(surname) and any(_surname(name) == surname for name in found_authors or [])
+
+
+def same_book(title: str, author: str, found_title: str, found_authors: list[str]) -> bool:
+    return title_matches(title, found_title) and author_matches(author, found_authors)
 
 
 def _latin(value: str) -> bool:
@@ -107,11 +140,199 @@ def _latin(value: str) -> bool:
     return bool(value) and all(ord(c) < 0x250 or not c.isalpha() for c in value)
 
 
-def _parse_books(raw: str) -> list[dict]:
+def _clean_query(value: str) -> str:
+    return re.sub(r'[()":\\\[\]]', ' ', value or '').strip()
+
+
+# ── Controle tegen bronnen ────────────────────────────────────────────────────
+
+def _queries(title: str, dutch_title: str) -> list[tuple[str, bool]]:
+    """
+    Zoekvolgorde: eerst de Nederlandse titel (als het model die gaf), dan de originele titel.
+    Het tweede element zegt of een treffer via die zoekopdracht de Nederlandse titel bevestigt.
+    """
+    pairs = [(dutch_title, True)] if dutch_title and _norm(dutch_title) != _norm(title) else []
+    return pairs + [(title, False)]
+
+
+def _source_author(author: str, found_authors: list[str]) -> str:
+    return next((a for a in found_authors or [] if author_matches(author, [a])), '')
+
+
+async def _ol_lookup(title: str, author: str, client: httpx.AsyncClient, also_title: str = '') -> dict:
+    """
+    Zoek de kandidaat in Open Library; alleen een treffer met dezelfde titel én auteur telt.
+
+    Met `also_title` zoeken we op een vertaalde titel (`title`, de Nederlandse) via de veldsyntax
+    `title:(...)`: die matcht ook editietitels, de `title=`-parameter niet. Het gevonden werk heeft dan vaak
+    de originele titel (`also_title`); die mag ook kloppen. Een treffer bewijst zo dat er een uitgave
+    met de Nederlandse titel bestaat.
+    """
+    search_title = _clean_query(_main_title(title))
+    search_author = _clean_query(_surname(author) or author)
+    params = {'limit': 5, 'fields': 'key,title,author_name,cover_i,subject,first_publish_year'}
+    if also_title:
+        params['q'] = f'title:({search_title}) author:({search_author})'
+    else:
+        params.update(title=search_title, author=search_author)
+    try:
+        r = await client.get('https://openlibrary.org/search.json', params=params, timeout=LOOKUP_TIMEOUT)
+        if not r.is_success:
+            return {}
+        for doc in r.json().get('docs', []):
+            if not doc.get('key') or not any(
+                same_book(t, author, doc.get('title', ''), doc.get('author_name', [])) for t in (title, also_title) if t
+            ):
+                continue
+            cover_id = doc.get('cover_i')
+            return {
+                'source': 'openlibrary',
+                'title': doc.get('title', ''),
+                'author': _source_author(author, doc.get('author_name', [])),
+                'ol_key': doc['key'],
+                'subjects': (doc.get('subject') or [])[:8],
+                'cover_url': f'https://covers.openlibrary.org/b/id/{cover_id}-M.jpg' if cover_id else None,
+                'year': _parse_year(doc.get('first_publish_year')),
+            }
+    except Exception as e:  # time-out of kapotte JSON: dan proberen we Google Books
+        log.info('Open Library lookup failed for "%s" (%s)', title, type(e).__name__)
+    return {}
+
+
+async def _gb_lookup(title: str, author: str, client: httpx.AsyncClient) -> dict:
+    """Terugval voor boeken die Open Library niet kent (vaak Nederlandstalige uitgaven)."""
+    params = {
+        'q': f'intitle:"{_clean_query(_main_title(title))}" inauthor:"{_clean_query(_surname(author) or author)}"',
+        'maxResults': 5,
+        'printType': 'books',
+        'fields': 'items(id,volumeInfo(title,authors,publishedDate,categories,imageLinks/thumbnail,industryIdentifiers))',
+    }
+    key = os.getenv('GOOGLE_BOOKS_API_KEY', '')
+    if key:
+        params['key'] = key
+    try:
+        r = await client.get('https://www.googleapis.com/books/v1/volumes', params=params, timeout=LOOKUP_TIMEOUT)
+        if not r.is_success:  # 429 = quotum op: stil falen
+            return {}
+        for item in r.json().get('items', []) or []:
+            info = item.get('volumeInfo', {})
+            if not same_book(title, author, info.get('title', ''), info.get('authors', [])):
+                continue
+            ids = info.get('industryIdentifiers', []) or []
+            isbn = next((i.get('identifier', '') for i in ids if i.get('type') == 'ISBN_13'), '')
+            thumb = (info.get('imageLinks') or {}).get('thumbnail', '').replace('http://', 'https://')
+            # Bij Google Books is elke treffer een editie: de gezochte titel zelf moet kloppen.
+            return {
+                'source': 'google_books',
+                'title': info.get('title', ''),
+                'author': _source_author(author, info.get('authors', [])),
+                'ol_key': '',
+                'source_id': item.get('id', ''),
+                'isbn': isbn,
+                'subjects': (info.get('categories') or [])[:8],
+                'cover_url': thumb or None,
+                'year': _parse_year(info.get('publishedDate', '')),
+            }
+    except Exception as e:
+        log.info('Google Books lookup failed for "%s" (%s)', title, type(e).__name__)
+    return {}
+
+
+async def _verify(item: dict, client: httpx.AsyncClient, sem: asyncio.Semaphore) -> dict:
+    """
+    Eerst Open Library, dan Google Books; per bron eerst de Nederlandse titel, dan de originele.
+    `dutch_confirmed` zegt of de treffer via de Nederlandse titel kwam (dan tonen we die titel).
+    """
+    title, author = item['title'], item['author']
+    dutch_title = item.get('dutch_title') if isinstance(item.get('dutch_title'), str) else ''
+    dutch_title = ' '.join(dutch_title.split())
+    async with sem:
+        for query_title, is_dutch in _queries(title, dutch_title):
+            meta = await _ol_lookup(query_title, author, client, also_title=title if is_dutch else '')
+            if meta:
+                return {**meta, 'dutch_confirmed': is_dutch}
+        for query_title, is_dutch in _queries(title, dutch_title):
+            meta = await _gb_lookup(query_title, author, client)
+            if meta:
+                return {**meta, 'dutch_confirmed': is_dutch}
+    return {}
+
+
+def _year(item: dict, meta: dict) -> int | None:
+    """
+    Jaar van eerste verschijning. Het model kent dat meestal beter dan de bronnen: Google Books geeft
+    het jaar van een editie (vaak een herdruk) en Open Library soms een te vroeg jaar door een verkeerd
+    gekoppelde editie (1969 voor The Idiot van Elif Batuman uit 2017). Het bronjaar is de terugval.
+    """
+    return _parse_year(item.get('year')) or meta.get('year')
+
+
+def select(found: list[tuple[dict, dict]], k: int, lang: str) -> list[tuple[dict, dict]]:
+    """
+    Kies de beste k uit de gecontroleerde kandidaten (die staan al in volgorde van match):
+    hooguit MAX_CLASSICS klassiekers en, bij Nederlands, minstens MIN_DUTCH Nederlandstalige boeken als die er zijn.
+    Is de lijst daarna niet vol, dan vullen we aan met de overige klassiekers: liever een klassieker dan een lege plek.
+    """
+    cutoff = datetime.date.today().year - RECENT_YEARS
+
+    def is_old(pair):
+        return (_year(*pair) or cutoff) < cutoff
+
+    def is_dutch(pair):
+        lang_ = pair[0].get('lang')
+        return isinstance(lang_, str) and lang_.strip().lower()[:2] == 'nl'
+
+    chosen, old = [], 0
+    for pair in found:
+        if is_old(pair):
+            if old >= MAX_CLASSICS:
+                continue
+            old += 1
+        chosen.append(pair)
+
+    if lang == 'nl':
+        top = chosen[:k]
+        dutch_extra = [p for p in chosen[k:] if is_dutch(p)]
+        while dutch_extra and sum(map(is_dutch, top)) < MIN_DUTCH and any(not is_dutch(p) for p in top):
+            # Vervang de laagst geplaatste niet-Nederlandse tip door de best passende Nederlandse.
+            idx = max(i for i, p in enumerate(top) if not is_dutch(p))
+            top[idx] = dutch_extra.pop(0)
+        top.sort(key=found.index)
+        chosen = top + [p for p in chosen[k:] if p not in top]
+
+    if len(chosen) < k:
+        chosen += [p for p in found if p not in chosen][: k - len(chosen)]
+
+    return chosen[:k]
+
+
+def display_title_author(item: dict, meta: dict) -> tuple[str, str]:
+    """
+    De titel van het model is meestal netter dan die van de bron (die bevat soms datums of "A Novel").
+    Een ondertitel na de dubbele punt laten we weg als de bron het boek ook zonder die ondertitel kent.
+    De spelling van de auteursnaam nemen we van de bron als het dezelfde naam is op accenten en hoofdletters
+    na ('Leila Slimani' -> 'Leïla Slimani'); een langere of andere vorm ('Gerard Kornelis van het Reve'),
+    niet-Latijns schrift of meerdere auteurs laten we bij de naam van het model.
+    """
+    title = item['title']
+    head = title.split(':')[0].strip()
+    if head != title and head and _norm(meta.get('title', '')) == _norm(head):
+        title = head
+    several = re.search(r'\s(?:&|and|en)\s', item['author'])
+    source_author = meta.get('author', '')
+    same_name = _norm(source_author) == _norm(item['author'])
+    author = source_author if same_name and _latin(source_author) and not several else item['author']
+    return title.strip(), author.strip()
+
+
+# ── Modelantwoord ─────────────────────────────────────────────────────────────
+
+def parse_books(raw: str) -> list[dict]:
     """
     Lees de JSON-lijst van het model. Is de lijst als geheel ongeldig (afgekapt of één kapot object),
     dan lezen we de objecten los, zodat één fout niet alle tips kost.
     """
+    raw = raw or ''
     match = re.search(r'\[.*\]', raw, re.DOTALL)
     if match:
         try:
@@ -131,164 +352,59 @@ def _parse_books(raw: str) -> list[dict]:
     return books
 
 
-def _queries(title: str, dutch_title: str) -> list[tuple[str, bool]]:
+def filter_candidates(
+    books: list[dict],
+    book_title: str,
+    book_author: str,
+    blocked_titles: list[str],
+    seen: set[str],
+) -> list[dict]:
     """
-    Zoekvolgorde: eerst de Nederlandse titel (als het model die gaf), dan de originele titel.
-    Het tweede element zegt of een match via die zoekopdracht de Nederlandse titel bevestigt.
+    Gooi weg: lege of kapotte objecten, het invoerboek, boeken van dezelfde auteur,
+    titels uit `blocked_titles` (exclude-lijst van de site) en een tweede boek van een auteur
+    die al genoemd is (`seen` wordt bijgewerkt, zodat ook een tweede ronde geen dubbelen geeft).
     """
-    pairs = [(dutch_title, True)] if dutch_title and _norm(dutch_title) != _norm(title) else []
-    return pairs + [(title, False)]
-
-
-def _clean(value: str) -> str:
-    return re.sub(r'[()":\\]', ' ', value).strip()
-
-
-async def _ol_lookup(title: str, dutch_title: str, author: str, client: httpx.AsyncClient, sem: asyncio.Semaphore) -> dict:
-    """
-    Zoek een kandidaat in Open Library. Een veldzoekopdracht op title: matcht ook de titels van edities,
-    dus een treffer op de Nederlandse titel bewijst dat er een Nederlandse uitgave met die titel bestaat.
-    """
-    for query_title, is_dutch in _queries(title, dutch_title):
-        q = f'title:({_clean(query_title)}) author:({_clean(_surname_raw(author))})' if is_dutch else f'{query_title} {author}'
-        try:
-            async with sem:
-                r = await client.get(
-                    'https://openlibrary.org/search.json',
-                    params={'q': q, 'limit': 3, 'fields': 'title,author_name,cover_i,subject,first_publish_year,key'},
-                    timeout=10,
-                )
-            if not r.is_success:
-                continue
-            for doc in r.json().get('docs', []):
-                if _same_book([title, dutch_title], author, doc.get('title', ''), doc.get('author_name', [])):
-                    cover_id = doc.get('cover_i')
-                    return {
-                        'source': 'openlibrary',
-                        'title': doc.get('title', ''),
-                        'author': next((a for a in doc.get('author_name', []) if _same_author(author, [a])), ''),
-                        'ol_key': doc.get('key', ''),
-                        'subjects': doc.get('subject', [])[:8],
-                        'cover_url': f'https://covers.openlibrary.org/b/id/{cover_id}-M.jpg' if cover_id else None,
-                        'year': _parse_year(doc.get('first_publish_year')),
-                        'dutch_confirmed': is_dutch,
-                    }
-        except Exception:
+    input_surname = _surname(book_author)
+    out = []
+    for b in books:
+        title, author = b.get('title'), b.get('author')
+        if not isinstance(title, str) or not isinstance(author, str):
             continue
-    return {}
-
-
-def _surname_raw(author: str) -> str:
-    parts = (author or '').replace(',', ' ').split()
-    return parts[-1] if parts else ''
-
-
-async def _gb_lookup(title: str, dutch_title: str, author: str, client: httpx.AsyncClient) -> dict:
-    """Tweede bron voor boeken die Open Library niet kent (vaak Nederlandstalige uitgaven)."""
-    key = os.getenv('GOOGLE_BOOKS_API_KEY', '')
-    for query_title, is_dutch in _queries(title, dutch_title):
-        params = {
-            'q': f'intitle:"{_clean(query_title)}" inauthor:"{_clean(_surname_raw(author))}"',
-            'maxResults': 5,
-            'printType': 'books',
-            'fields': 'items(id,volumeInfo(title,authors,publishedDate,categories,imageLinks/thumbnail,language))',
-        }
-        if key:
-            params['key'] = key
-        try:
-            r = await client.get('https://www.googleapis.com/books/v1/volumes', params=params, timeout=8)
-            if r.status_code == 429:  # dagquotum op: stoppen, niet blijven proberen
-                return {}
-            if not r.is_success:
-                continue
-            for item in r.json().get('items', []):
-                info = item.get('volumeInfo', {})
-                # Bij Google Books is elke treffer een editie: voor de Nederlandse titel moet die titel zelf kloppen.
-                if _same_book([query_title], author, info.get('title', ''), info.get('authors', [])):
-                    thumb = (info.get('imageLinks') or {}).get('thumbnail', '').replace('http://', 'https://')
-                    return {
-                        'source': 'google_books',
-                        'title': info.get('title', ''),
-                        'author': next((a for a in info.get('authors', []) if _same_author(author, [a])), ''),
-                        'source_id': item.get('id', ''),
-                        # ISBN-13, zodat WordPress er een eigen boekrecord van kan maken.
-                        'isbn': next((i['identifier'] for i in info.get('industryIdentifiers', []) if i.get('type') == 'ISBN_13'), ''),
-                        'ol_key': '',
-                        'subjects': info.get('categories', [])[:8],
-                        'cover_url': thumb or None,
-                        # Het jaar van Google Books is vaak dat van een herdruk; alleen als laatste redmiddel.
-                        'year': _parse_year(info.get('publishedDate', '')),
-                        'dutch_confirmed': is_dutch,
-                    }
-        except Exception:
+        title, author = ' '.join(title.split()), ' '.join(author.split())
+        if not title or not author:
             continue
-    return {}
+        if input_surname and _surname(author) == input_surname:
+            continue
+        if book_title and title_matches(title, book_title):
+            continue
+        # Ook de Nederlandse titel telt: de site kent een eerder getoond boek mogelijk onder die titel.
+        dutch_title = b.get('dutch_title') if isinstance(b.get('dutch_title'), str) else ''
+        names = [title] + ([dutch_title] if dutch_title.strip() else [])
+        if any(title_matches(n, t) for n in names for t in blocked_titles if t):
+            continue
+        # Eén boek per auteur: zo blijven er meer verschillende ontdekkingen over.
+        key = 'author:' + _surname(author)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({**b, 'title': title, 'author': author})
+    return out
 
 
-def _year(item: dict, meta: dict) -> int | None:
-    """
-    Het jaar van eerste verschijning. Het taalmodel kent dat beter dan de bronnen: Open Library geeft vaak
-    het jaar van een herdruk of vertaling, en soms een te vroeg jaar door een verkeerd gekoppelde editie
-    (1969 voor The Idiot van Elif Batuman uit 2017). Google Books geeft altijd een editiejaar.
-    Bronjaren gebruiken we alleen als het model geen jaar gaf. WordPress corrigeert bekende fouten (Book::CORRECTIONS).
-    """
-    return _parse_year(item.get('year')) or meta.get('year')
-
-
-def _select(found: list[tuple[dict, dict]], k: int, lang: str) -> list[tuple[dict, dict]]:
-    """
-    Kies de beste k uit de gecontroleerde kandidaten (die staan al in volgorde van match):
-    hooguit MAX_CLASSICS klassiekers en, bij Nederlands, minstens MIN_DUTCH Nederlandstalige boeken als die er zijn.
-    Is de lijst daarna niet vol, dan vullen we aan met de overige klassiekers: liever een klassieker dan een lege plek.
-    """
-    cutoff = datetime.date.today().year - RECENT_YEARS
-    is_old = lambda pair: (_year(*pair) or cutoff) < cutoff
-    is_dutch = lambda pair: (pair[0].get('lang') or '').lower() == 'nl'
-
-    chosen, old = [], 0
-    for pair in found:
-        if is_old(pair):
-            if old >= MAX_CLASSICS:
-                continue
-            old += 1
-        chosen.append(pair)
-
-    if lang == 'nl':
-        top = chosen[:k]
-        dutch_extra = [p for p in chosen[k:] if is_dutch(p)]
-        while dutch_extra and sum(map(is_dutch, top)) < MIN_DUTCH:
-            # Vervang de laagst geplaatste niet-Nederlandse tip door de best passende Nederlandse.
-            idx = max(i for i, p in enumerate(top) if not is_dutch(p))
-            top[idx] = dutch_extra.pop(0)
-        top.sort(key=found.index)
-        chosen = top + [p for p in chosen[k:] if p not in top]
-
-    if len(chosen) < k:
-        chosen += [p for p in found if p not in chosen][: k - len(chosen)]
-
-    return chosen[:k]
-
-
-LANG_NAMES = {'nl': 'Dutch', 'en': 'English'}
-
-
-async def recommend(
+def _build_prompt(
+    n: int,
     book_title: str,
     book_author: str,
     book_description: str,
     book_subjects: list[str],
-    style_weight: float = 3.0,
-    topic_weight: float = 3.0,
-    selected_subjects: list[str] | None = None,
-    k: int = 10,
-    lang: str = 'nl',
-    heaviness: str = 'any',
-) -> list[Recommendation]:
-
-    groq_client = AsyncGroq(api_key=os.getenv('GROQ_API_KEY'))
+    style_weight: float,
+    selected_subjects: list[str] | None,
+    lang: str,
+    heaviness: str,
+    avoid_titles: list[str],
+) -> str:
     lang_name = LANG_NAMES.get(lang, LANG_NAMES['nl'])
     dutch = lang == 'nl'
-    n = min(MAX_CANDIDATES, k * CANDIDATE_FACTOR)
     recent_from = datetime.date.today().year - RECENT_YEARS
 
     # Vertaal slider (1-5) direct naar een expliciete focusinstructie
@@ -323,38 +439,66 @@ async def recommend(
         f'\nThe user is especially interested in: {", ".join(selected_subjects)}.'
         if selected_subjects else ''
     )
+    avoid_note = (
+        '\n- Do NOT recommend any of these (already shown or rejected): '
+        + '; '.join(f'"{t}"' for t in avoid_titles)
+        if avoid_titles else ''
+    )
 
     # Nederlandse lezers: een deel oorspronkelijk Nederlandstalig, de rest bij voorkeur in het Nederlands vertaald.
     dutch_rules = (
-        f'\n- The reader is Dutch. About a third of the books should be originally written in Dutch '
-        f'(Dutch or Flemish authors), but only ones that genuinely fit and that you know well: '
-        f'never make up a plausible-sounding Dutch title. The rest may be translated books, '
-        f'preferably ones available in Dutch translation'
-        f'\n- "dutch_title": for a translated book, the title of its published Dutch translation, '
-        f'only if you are certain it exists; otherwise null. Null for Dutch originals'
+        '\n- The reader is Dutch. About a third of the books should be originally written in Dutch '
+        '(Dutch or Flemish authors), but only ones that genuinely fit and that you know well: '
+        'never make up a plausible-sounding Dutch title. The rest may be translated books, '
+        'preferably ones available in Dutch translation'
+        '\n- "dutch_title": for a translated book, the title of its published Dutch translation, '
+        'only if you are certain it exists; otherwise null. Null for Dutch originals'
     ) if dutch else ''
-    dutch_field = ', "dutch_title": null' if dutch else ''
+    dutch_field = '\n    "dutch_title": null,' if dutch else ''
 
-    prompt = f"""You are an expert book recommender. Suggest {n} existing, published books for a reader who liked:
+    return f"""You are an expert book recommender with precise knowledge of published literature. \
+Recommend {n} books similar to the one below.
 
-"{book_title}" by {book_author}
-Subjects: {subjects_str}
-Description: {book_description[:500]}
+Book: "{book_title}" by {book_author}
+Genres/subjects: {subjects_str}
+Description: {book_description[:600]}
 
 {focus}{selected_note}{heaviness_note}
 
 Rules:
-- Not by {book_author}, and not "{book_title}" itself
-- Only real books you are certain exist, with the exact original title and the correct author. Never invent or guess; fewer books is better than a wrong one
-- Mostly books first published in {recent_from} or later. At most 2 older classics, and only if they fit exceptionally well
-- Mix well-known and lesser-known books. Best match first{dutch_rules}
+- Only real, published books that you are certain exist. Each title and author is checked against \
+library catalogues; invented or misattributed books are discarded, so never guess
+- Give the exact title as it was originally published, and the correct author's full name. \
+Double-check that this author really wrote this book
+- Do NOT translate titles yourself. Use the original-language title; a Dutch title only if the book \
+was originally written in Dutch
+- Do NOT recommend any book by {book_author}, and not "{book_title}" itself or a translation of it{avoid_note}
+- Every book by a different author: at most one book per author
+- Mostly books first published in {recent_from} or later. At most {MAX_CLASSICS} older classics, \
+and only if they fit exceptionally well
+- Prefer books you know well over obscure ones you are unsure about. Include both well-known and lesser-known books
+- Vary the geographic origins{dutch_rules}
+- Best match first
 - "year": year of first publication in the original language
 - "lang": original language as ISO 639-1 code
-- "reason": 1-2 sentences in {lang_name} on why it fits
+- The "reason" field must be in {lang_name} (2-3 sentences explaining why this book fits)
 
-Return ONLY a JSON array:
-[{{"title": "", "author": "", "year": 2015, "lang": "en"{dutch_field}, "reason": ""}}]"""
+Return ONLY a valid JSON array, no other text:
+[
+  {{
+    "title": "Original Title",
+    "author": "Author Full Name",
+    "year": 1999,
+    "lang": "en",{dutch_field}
+    "reason": "{lang_name} explanation of why this book fits the input book."
+  }}
+]"""
 
+
+LANG_NAMES = {'nl': 'Dutch', 'en': 'English'}
+
+
+async def _ask_model(groq_client: AsyncGroq, prompt: str) -> list[dict]:
     response = await groq_client.chat.completions.create(
         model=GROQ_MODEL,
         messages=[{'role': 'user', 'content': prompt}],
@@ -362,93 +506,101 @@ Return ONLY a JSON array:
         max_tokens=4000,
         reasoning_effort='low',
     )
-
     raw = (response.choices[0].message.content or '').strip()
-    books_raw = _parse_books(raw)
-    if not books_raw:
-        log.warning(
-            'recommend "%s": no books in model output (finish_reason=%s, %d chars): %s',
-            book_title, response.choices[0].finish_reason, len(raw), raw[:300],
+    books = parse_books(raw)
+    if not books:
+        log.warning('recommend: no books in model output (finish_reason=%s, %d chars)',
+                    response.choices[0].finish_reason, len(raw))
+    return books
+
+
+# ── Publieke API ──────────────────────────────────────────────────────────────
+
+async def recommend(
+    book_title: str,
+    book_author: str,
+    book_description: str,
+    book_subjects: list[str],
+    style_weight: float = 3.0,
+    topic_weight: float = 3.0,
+    selected_subjects: list[str] | None = None,
+    k: int = 10,
+    lang: str = 'nl',
+    heaviness: str = 'any',
+    exclude: list[str] | None = None,
+) -> list[Recommendation]:
+    started = time.monotonic()
+    exclude = [t.strip() for t in (exclude or []) if isinstance(t, str) and t.strip()]
+
+    def prompt(n: int, avoid: list[str]) -> str:
+        return _build_prompt(
+            n, book_title, book_author, book_description, book_subjects, style_weight,
+            selected_subjects, lang, heaviness, avoid,
         )
-        return []
 
-    input_title, input_surname = _norm(book_title), _surname(book_author)
-    candidates, seen = [], set()
-    for b in books_raw[:n]:
-        if not isinstance(b.get('title'), str) or not isinstance(b.get('author'), str):
-            continue
-        # Het model zet soms harde spaties of dubbele spaties in namen.
-        b['title'], b['author'] = ' '.join(b['title'].split()), ' '.join(b['author'].split())
-        if not b['title'] or not b['author']:
-            continue
-        key = _norm(b['title']) + '|' + _surname(b['author'])
-        # Het model noemt soms toch het boek zelf of de auteur; dat is geen ontdekking.
-        if key in seen or _surname(b['author']) == input_surname or (input_title and _title_matches(b['title'], book_title)):
-            continue
-        seen.add(key)
-        candidates.append(b)
+    seen: set[str] = set()
+    verified: list[tuple[dict, dict]] = []
+    rejected: list[dict] = []
+    proposed: list[str] = []
 
-    def args(b: dict) -> tuple[str, str, str]:
-        return b['title'].strip(), (b.get('dutch_title') or '').strip(), b['author']
+    async with (
+        AsyncGroq(api_key=os.getenv('GROQ_API_KEY')) as groq_client,
+        httpx.AsyncClient(timeout=LOOKUP_TIMEOUT, headers={'User-Agent': USER_AGENT}) as http,
+    ):
+        sem = asyncio.Semaphore(LOOKUP_CONCURRENCY)
+        records: set[str] = set()
 
-    headers = {'User-Agent': USER_AGENT}
-    async with httpx.AsyncClient(timeout=10, headers=headers) as http:
-        sem = asyncio.Semaphore(OL_CONCURRENCY)
-        metas = list(await asyncio.gather(*(_ol_lookup(*args(b), http, sem) for b in candidates)))
+        async def round_(n: int, avoid: list[str]) -> None:
+            books = await _ask_model(groq_client, prompt(n, avoid))
+            candidates = filter_candidates(books, book_title, book_author, exclude, seen)
+            proposed.extend(c['title'] for c in candidates)
+            metas = await asyncio.gather(*(_verify(c, http, sem) for c in candidates))
+            for item, meta in zip(candidates, metas):
+                record = (meta.get('ol_key') or meta.get('source_id')) if meta else ''
+                if not record:
+                    rejected.append(item)
+                elif record not in records:  # zelfde werk twee keer genoemd
+                    records.add(record)
+                    verified.append((item, meta))
 
-        # Google Books alleen voor wat Open Library niet kent, en alleen zoveel als nodig om k te halen.
-        # Nederlandstalige boeken eerst: die ontbreken het vaakst in Open Library.
-        missing = [i for i, m in enumerate(metas) if not m]
-        missing.sort(key=lambda i: (candidates[i].get('lang') != 'nl', i))
-        needed = k - (len(candidates) - len(missing))
-        if needed > 0 and missing:
-            todo = missing[: needed + 2]
-            extra = await asyncio.gather(*(_gb_lookup(*args(candidates[i]), http) for i in todo))
-            for i, meta in zip(todo, extra):
-                metas[i] = meta
+        await round_(k + CANDIDATE_EXTRA, exclude)
+        rounds = 1
 
-    # Alleen boeken die in minstens één bron bestaan: liever minder aanbevelingen dan verzonnen titels.
-    # Ontdubbelen op het gevonden record: het model noemt hetzelfde boek soms twee keer (bijv. als Engels én Nederlands).
-    found, records = [], set()
-    for item, meta in zip(candidates, metas):
-        record = meta.get('ol_key') or meta.get('source_id')
-        if meta and record not in records:
-            records.add(record)
-            found.append((item, meta))
-    selected = _select(found, k, lang)
-    usage = getattr(response, 'usage', None)
+        # Te weinig over na controle: één keer bijvragen, zonder alles wat al genoemd is.
+        if len(verified) < k and time.monotonic() - started < REFILL_BUDGET_SECONDS:
+            await round_(k - len(verified) + REFILL_EXTRA, exclude + proposed)
+            rounds = 2
+
     log.info(
-        'recommend "%s": %d candidates, %d via Open Library, %d via Google Books, %d shown, %s tokens; not found: %s',
-        book_title, len(candidates), sum(m.get('source') == 'openlibrary' for m in metas),
-        sum(m.get('source') == 'google_books' for m in metas), len(selected), getattr(usage, 'total_tokens', '?'),
-        '; '.join(f"{c['title']} ({c['author']})" for c, m in zip(candidates, metas) if not m) or '-',
+        'recommend "%s": %d rounds, %d verified (%d Open Library, %d Google Books), '
+        '%d with Dutch title (%d confirmed), %d rejected in %.1fs; rejected: %s',
+        book_title, rounds, len(verified),
+        sum(m['source'] == 'openlibrary' for _, m in verified),
+        sum(m['source'] == 'google_books' for _, m in verified),
+        sum(bool(i.get('dutch_title')) for i, _ in verified),
+        sum(bool(m.get('dutch_confirmed')) for _, m in verified),
+        len(rejected), time.monotonic() - started,
+        '; '.join(f"{c['title']} ({c['author']})" for c in rejected) or '-',
     )
 
     results = []
-    for i, (item, meta) in enumerate(selected):
+    for i, (item, meta) in enumerate(select(verified, k, lang)):
+        title, author = display_title_author(item, meta)
         # Alleen een Nederlandse titel die een bron heeft bevestigd: het model verzint die anders weleens.
-        dutch_title = (item.get('dutch_title') or '').strip() if meta.get('dutch_confirmed') else None
-        # De titel van het model is meestal netter dan die van de bron (die bevat soms datums of "A Novel").
-        # Een ondertitel na de dubbele punt laten we weg als de bron het boek ook zonder die ondertitel kent.
-        title = item['title']
-        head = title.split(':')[0].strip()
-        if head != title and _title_matches(head, meta.get('title', '')):
-            title = head
-        # Bij meerdere auteurs ("A & B") houden we de naam van het model, anders valt er een weg.
-        several = re.search(r'\s(?:&|and|en)\s', item['author'])
-        author = meta.get('author') if _latin(meta.get('author', '')) and not several else item['author']
+        dutch_title = ' '.join(item['dutch_title'].split()) if meta.get('dutch_confirmed') else None
+        lang_ = item.get('lang') if isinstance(item.get('lang'), str) else ''
         results.append(Recommendation(
-            title=title.strip(),
-            author=author.strip(),
+            title=title,
+            author=author,
             description='',
             subjects=meta.get('subjects', []),
             cover_url=meta.get('cover_url'),
             ol_key=meta.get('ol_key', ''),
             score=round(max(0.5, 1.0 - i * 0.04), 2),
-            explanation=item.get('reason', ''),
+            explanation=item.get('reason', '') if isinstance(item.get('reason'), str) else '',
             year=_year(item, meta),
             dutch_title=dutch_title if dutch_title and _norm(dutch_title) != _norm(title) else None,
-            original_language=(item.get('lang') or '').lower()[:2] or None,
+            original_language=lang_.strip().lower()[:2] or None,
             source=meta.get('source', 'openlibrary'),
             source_id=meta.get('source_id', ''),
             isbn=meta.get('isbn', ''),
