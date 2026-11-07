@@ -14,13 +14,20 @@ Ondersteunde invoer:
 import os
 import re
 import json
+import logging
+import unicodedata
 import httpx
 from dataclasses import dataclass
 from dotenv import load_dotenv
 
 load_dotenv()
 
+log = logging.getLogger('uvicorn.error')
+
 _GOOGLE_BOOKS_KEY = os.getenv('GOOGLE_BOOKS_API_KEY', '')
+
+# Open Library vraagt om een herkenbare User-Agent (zonder persoonsgegevens).
+USER_AGENT = 'BookCompass/1.0 (https://bookcompass.nl)'
 
 
 @dataclass
@@ -36,6 +43,8 @@ class BookData:
 
 def _detect(text: str) -> str:
     t = text.strip()
+    if re.fullmatch(r'OL\d+[WM]', t, re.I):
+        return 'olid'
     if re.match(r'https?://', t):
         if 'openlibrary.org' in t:
             return 'openlibrary'
@@ -117,16 +126,35 @@ async def _google_books_isbn(isbn: str, client: httpx.AsyncClient) -> BookData |
 
 # ── Open Library Search API ───────────────────────────────────────────────────
 
+class SourceUnavailable(Exception):
+    """Open Library reageerde niet (time-out of serverfout). Dat is iets anders dan 'boek bestaat niet'."""
+
+
 async def _ol_search(query: str, client: httpx.AsyncClient) -> BookData | None:
-    """Zoek een boek via de Open Library Search API (gratis, geen key)."""
-    try:
-        r = await client.get(
-            'https://openlibrary.org/search.json',
-            params={'q': query, 'limit': 1, 'fields': 'title,author_name,cover_i,subject,first_publish_year,isbn,key,description'},
-            timeout=10,
-        )
+    """Zoek een boek via de Open Library Search API (gratis, geen key). Eén herkansing bij een time-out of 5xx."""
+    for attempt in range(2):
+        try:
+            r = await client.get(
+                'https://openlibrary.org/search.json',
+                params={'q': query, 'limit': 1, 'fields': 'title,author_name,cover_i,subject,first_publish_year,isbn,key,description'},
+                headers={'User-Agent': USER_AGENT},
+                timeout=12,
+            )
+        except httpx.HTTPError as e:
+            log.warning('Open Library search failed (%s): %s', type(e).__name__, query)
+            if attempt:
+                raise SourceUnavailable(query)
+            continue
+        if r.status_code >= 500 or r.status_code == 429:
+            log.warning('Open Library search returned %s: %s', r.status_code, query)
+            if attempt:
+                raise SourceUnavailable(query)
+            continue
         if not r.is_success:
             return None
+        break
+
+    try:
         docs = r.json().get('docs', [])
         if not docs:
             return None
@@ -154,6 +182,55 @@ async def _ol_search(query: str, client: httpx.AsyncClient) -> BookData | None:
         )
     except Exception:
         return None
+
+
+def _ol_title_query(title: str, author: str = '') -> str:
+    """Veldzoekopdracht in Open Library-syntax (niet de Google-syntax intitle:/inauthor:, die geeft 0 resultaten)."""
+    clean = lambda v: re.sub(r'[()":\\]', ' ', v).strip()
+    q = f'title:({clean(title)})'
+    return q + (f' author:({clean(author)})' if author.strip() else '')
+
+
+def _norm(value: str) -> str:
+    return re.sub(r'[^a-z0-9]', '', unicodedata.normalize('NFKD', value or '').encode('ascii', 'ignore').decode().lower())
+
+
+async def _google_books_text(query: str, title: str, author: str, client: httpx.AsyncClient) -> BookData | None:
+    """
+    Vrije tekst via Google Books, als Open Library het boek niet kent (vaak Nederlandstalige boeken)
+    of niet reageert. Alleen een resultaat waarvan de auteur in de zoektekst staat, of waarvan de titel
+    precies de zoektekst is: anders krijg je zomaar een vertaling met de vertaler als auteur.
+    """
+    q = f'intitle:"{title}"' + (f' inauthor:"{author}"' if author else '') if author else query
+    params = {'q': q, 'maxResults': 5, 'printType': 'books'}
+    if _GOOGLE_BOOKS_KEY:
+        params['key'] = _GOOGLE_BOOKS_KEY
+    try:
+        r = await client.get('https://www.googleapis.com/books/v1/volumes', params=params, timeout=10)
+        if not r.is_success:
+            return None
+        wanted = _norm(query)
+        for item in r.json().get('items', []):
+            info = item.get('volumeInfo', {})
+            found_title = info.get('title', '')
+            authors = info.get('authors', [])
+            if not found_title or not authors:
+                continue
+            surnames = [_norm(a.split()[-1]) for a in authors if a.split()]
+            if not (any(s and s in wanted for s in surnames) or _norm(found_title) == wanted):
+                continue
+            subjects = info.get('categories', [])
+            description = info.get('description', '') or f'{found_title} by {authors[0]}. Genres: {", ".join(subjects)}'
+            isbns = info.get('industryIdentifiers', [])
+            isbn = next((i['identifier'] for i in isbns if i['type'] == 'ISBN_13'), '')
+            return BookData(
+                title=found_title, author=authors[0], description=description, subjects=subjects,
+                cover_url=info.get('imageLinks', {}).get('thumbnail', '').replace('http://', 'https://') or None,
+                ol_key=f'/isbn/{isbn}' if isbn else '', year=_parse_year(str(info.get('publishedDate', ''))),
+            )
+    except Exception:
+        return None
+    return None
 
 
 # ── OpenLibrary URL ───────────────────────────────────────────────────────────
@@ -289,8 +366,7 @@ async def _fetch_amazon(url: str, client: httpx.AsyncClient) -> BookData:
                     if book:
                         return book
                 if title:
-                    q = f'intitle:"{title}"' + (f' inauthor:"{author}"' if author else '')
-                    book = await _ol_search(q, client)
+                    book = await _ol_search(_ol_title_query(title, author), client)
                     if book:
                         return book
             except (json.JSONDecodeError, KeyError):
@@ -299,7 +375,7 @@ async def _fetch_amazon(url: str, client: httpx.AsyncClient) -> BookData:
         title_match = re.search(r'id="productTitle"[^>]*>\s*(.*?)\s*</span>', html, re.DOTALL)
         if title_match:
             title = title_match.group(1).strip()
-            book = await _ol_search(f'intitle:"{title}"', client)
+            book = await _ol_search(_ol_title_query(title), client)
             if book:
                 return book
     except Exception:
@@ -332,8 +408,7 @@ async def _fetch_goodreads(url: str, client: httpx.AsyncClient) -> BookData:
                 if book:
                     return book
             if title:
-                q = f'intitle:"{title}"' + (f' inauthor:"{author}"' if author else '')
-                book = await _ol_search(q, client)
+                book = await _ol_search(_ol_title_query(title, author), client)
                 if book:
                     return book
         except (json.JSONDecodeError, KeyError):
@@ -365,7 +440,7 @@ async def _fetch_url(url: str, client: httpx.AsyncClient) -> BookData:
                     return book
             title = data.get('name', '')
             if title:
-                book = await _ol_search(f'intitle:"{title}"', client)
+                book = await _ol_search(_ol_title_query(title), client)
                 if book:
                     return book
         except (json.JSONDecodeError, KeyError):
@@ -374,7 +449,7 @@ async def _fetch_url(url: str, client: httpx.AsyncClient) -> BookData:
     og_match = re.search(r'<meta[^>]*property="og:title"[^>]*content="([^"]+)"', html)
     if og_match:
         title = og_match.group(1).strip()
-        book = await _ol_search(f'intitle:"{title}"', client)
+        book = await _ol_search(_ol_title_query(title), client)
         if book:
             return book
 
@@ -402,7 +477,10 @@ async def fetch_book(query: str) -> BookData:
             return await _fetch_url(query, client)
         if kind == 'isbn':
             isbn = re.sub(r'[-\s]', '', query)
-            book = await _ol_search(f'isbn:{isbn}', client)
+            try:
+                book = await _ol_search(f'isbn:{isbn}', client)
+            except SourceUnavailable:
+                book = None
             if book:
                 return book
             # Fallback: Google Books (betere ISBN-dekking voor nieuwe/buitenlandse edities)
@@ -413,22 +491,43 @@ async def fetch_book(query: str) -> BookData:
                 f'ISBN {isbn} niet gevonden. '
                 'Typ de boektitel rechtstreeks in het zoekveld.'
             )
-        # Vrije tekst — probeer verschillende query-vormen
-        q = query.strip()
+        if kind == 'olid':
+            olid = query.strip().upper()
+            return await _fetch_openlibrary(f'https://openlibrary.org/{"works" if olid.endswith("W") else "books"}/{olid}', client)
 
-        # Detecteer "titel - auteur" of "titel by auteur" patroon
-        sep = re.split(r'\s+(?:by|-)\s+', q, maxsplit=1, flags=re.I)
-        if len(sep) == 2:
-            title_part, author_part = sep
-            book = await _ol_search(
-                f'intitle:"{title_part.strip()}" inauthor:"{author_part.strip()}"', client
-            )
-            if book:
-                return book
+        return await _fetch_text(query.strip(), client)
 
-        # Probeer als losse zoekterm (meest flexibel)
-        book = await _ol_search(q, client)
+
+async def _fetch_text(q: str, client: httpx.AsyncClient) -> BookData:
+    """
+    Vrije tekst: "titel", "titel auteur", "titel - auteur", "titel by/van/door auteur" of "titel, auteur".
+    Open Library zoekt met EN tussen alle woorden, en een losse '-' betekent daar NIET.
+    Daarom halen we scheidingstekens weg en zoeken we waar mogelijk op titel- en auteurveld.
+    """
+    # Eerst de hele tekst (zonder losse streepjes): dan blijft een titel als "De ontdekking van de hemel" heel.
+    attempts: list[str] = [re.sub(r'\s+[-–—]\s+', ' ', q)]
+    sep = re.split(r'\s+(?:by|van|door|[-–—])\s+|\s*,\s+', q, maxsplit=1, flags=re.I)
+    if len(sep) == 2 and all(part.strip() for part in sep):
+        title_part, author_part = (part.strip() for part in sep)
+        attempts += [_ol_title_query(title_part, author_part), f'{title_part} {author_part}']
+
+    unavailable = False
+    for attempt in dict.fromkeys(attempts):
+        try:
+            book = await _ol_search(attempt, client)
+        except SourceUnavailable:
+            unavailable = True
+            continue
         if book:
             return book
 
-        raise ValueError(f'Geen boek gevonden voor: {query}')
+    # Tweede bron: Google Books (kent meer Nederlandstalige uitgaven).
+    title_part, author_part = (sep[0], sep[1]) if len(sep) == 2 else (q, '')
+    book = await _google_books_text(q, title_part.strip(), author_part.strip(), client)
+    if book:
+        return book
+
+    if unavailable:
+        # Geen 'niet gevonden' tonen als Open Library gewoon even niet reageerde.
+        raise SourceUnavailable(q)
+    raise ValueError(f'Geen boek gevonden voor: {q}')

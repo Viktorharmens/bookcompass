@@ -19,7 +19,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
 
-from scraper import fetch_book
+from scraper import fetch_book, SourceUnavailable
 import groq_recommender
 
 app = FastAPI(title="BookCompass API", version="1.0.0")
@@ -52,11 +52,23 @@ class RecommendRequest(BaseModel):
     selected_subjects: list[str] = []
     lang: str = "nl"
     heaviness: Literal["light", "any", "heavy"] = "any"
+    # Optioneel: titels die al getoond of afgekeurd zijn, zodat de site kan bijvragen zonder dubbelen.
+    exclude: list[str] = []
 
     @field_validator("style_weight", "topic_weight")
     @classmethod
     def clamp(cls, v: float) -> float:
         return max(1.0, min(5.0, v))
+
+    @field_validator("exclude", mode="before")
+    @classmethod
+    def clean_exclude(cls, v):
+        if v is None:
+            return []
+        if not isinstance(v, list):
+            raise ValueError("exclude moet een lijst met titels zijn")
+        titles = [str(t).strip()[:200] for t in v if isinstance(t, (str, int, float)) and str(t).strip()]
+        return titles[:50]
 
 
 class BookResult(BaseModel):
@@ -69,6 +81,14 @@ class BookResult(BaseModel):
     score: float
     explanation: str
     year: int | None = None
+    # Nederlandse titel (alleen als een bron die bevestigt) en originele taal (ISO 639-1).
+    dutch_title: str | None = None
+    original_language: str | None = None
+    # Waar het boek gecontroleerd is: "openlibrary" (ol_key gevuld) of "google_books"
+    # (ol_key leeg, source_id = Google Books volume-id, isbn = ISBN-13 indien bekend).
+    source: str = "openlibrary"
+    source_id: str = ""
+    isbn: str = ""
 
 
 class RecommendResponse(BaseModel):
@@ -87,6 +107,8 @@ async def health():
 async def get_book_info(req: BookInfoRequest):
     try:
         book = await fetch_book(req.url)
+    except SourceUnavailable:
+        raise HTTPException(status_code=502, detail="Open Library reageert niet; probeer het zo nog eens.")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -104,6 +126,8 @@ async def get_book_info(req: BookInfoRequest):
 async def get_recommendations(req: RecommendRequest):
     try:
         book = await fetch_book(req.url)
+    except SourceUnavailable:
+        raise HTTPException(status_code=502, detail="Open Library reageert niet; probeer het zo nog eens.")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -121,6 +145,7 @@ async def get_recommendations(req: RecommendRequest):
             k=10,
             lang=req.lang,
             heaviness=req.heaviness,
+            exclude=req.exclude,
         )
     except Exception:
         raise HTTPException(status_code=500, detail=traceback.format_exc())
@@ -144,6 +169,11 @@ async def get_recommendations(req: RecommendRequest):
                 score=r.score,
                 explanation=r.explanation,
                 year=r.year,
+                dutch_title=r.dutch_title,
+                original_language=r.original_language,
+                source=r.source,
+                source_id=r.source_id,
+                isbn=r.isbn,
             )
             for r in recs
         ],
