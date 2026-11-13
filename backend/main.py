@@ -13,16 +13,19 @@ Invoer voor /book-info en /recommend (veld "url") kan zijn:
   - Vrije tekst (boektitel)
 """
 
-import traceback
+import logging
 from typing import Literal
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from scraper import fetch_book, SourceUnavailable
 import groq_recommender
 
-app = FastAPI(title="BookCompass API", version="1.0.0")
+log = logging.getLogger("uvicorn.error")
+
+# Geen interactieve documentatie in productie: de API is alleen voor de eigen site.
+app = FastAPI(title="BookCompass API", version="1.0.0", docs_url=None, redoc_url=None, openapi_url=None)
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,7 +38,7 @@ app.add_middleware(
 # ── Schema's ──────────────────────────────────────────────────────────────────
 
 class BookInfoRequest(BaseModel):
-    url: str  # accepteert URL, ISBN of vrije titel
+    url: str = Field(max_length=500)  # accepteert URL, ISBN of vrije titel
 
 
 class BookInfoResponse(BaseModel):
@@ -46,11 +49,11 @@ class BookInfoResponse(BaseModel):
 
 
 class RecommendRequest(BaseModel):
-    url: str  # accepteert URL, ISBN of vrije titel
+    url: str = Field(max_length=500)  # accepteert URL, ISBN of vrije titel
     style_weight: float = 3.0
     topic_weight: float = 3.0
-    selected_subjects: list[str] = []
-    lang: str = "nl"
+    selected_subjects: list[str] = Field(default=[], max_length=12)
+    lang: Literal["nl", "en"] = "nl"
     heaviness: Literal["light", "any", "heavy"] = "any"
     # Optioneel: titels die al getoond of afgekeurd zijn, zodat de site kan bijvragen zonder dubbelen.
     exclude: list[str] = []
@@ -111,8 +114,10 @@ async def get_book_info(req: BookInfoRequest):
         raise HTTPException(status_code=502, detail="Open Library reageert niet; probeer het zo nog eens.")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Kon boek niet ophalen: {e}")
+    except Exception:
+        # Geen foutdetails naar buiten: die verraden wat er op het interne netwerk bereikbaar is.
+        log.exception("Boek ophalen mislukt")
+        raise HTTPException(status_code=502, detail="Kon het boek niet ophalen; probeer het zo nog eens.")
 
     return BookInfoResponse(
         title=book.title,
@@ -130,8 +135,10 @@ async def get_recommendations(req: RecommendRequest):
         raise HTTPException(status_code=502, detail="Open Library reageert niet; probeer het zo nog eens.")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Kon boek niet ophalen: {e}")
+    except Exception:
+        # Geen foutdetails naar buiten: die verraden wat er op het interne netwerk bereikbaar is.
+        log.exception("Boek ophalen mislukt")
+        raise HTTPException(status_code=502, detail="Kon het boek niet ophalen; probeer het zo nog eens.")
 
     try:
         recs = await groq_recommender.recommend(
@@ -148,7 +155,8 @@ async def get_recommendations(req: RecommendRequest):
             exclude=req.exclude,
         )
     except Exception:
-        raise HTTPException(status_code=500, detail=traceback.format_exc())
+        log.exception("Aanbevelingen ophalen mislukt")
+        raise HTTPException(status_code=500, detail="Aanbevelingen ophalen mislukt; probeer het zo nog eens.")
 
     return RecommendResponse(
         query_book={
