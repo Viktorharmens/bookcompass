@@ -456,6 +456,22 @@ def _build_prompt(
     ) if dutch else ''
     dutch_field = '\n    "dutch_title": null,' if dutch else ''
 
+    # De uitleg per boek: kort en concreet. In het Nederlands vervalt het model snel in vertaald Engels.
+    reason_rules = (
+        '\n- Write the "reason" in natural, everyday Dutch, the way a bookseller would say it to a customer. '
+        'Address the reader as "je". One or two short sentences, at most 35 words'
+        '\n- Name concretely what the two books share (theme, tone, setting or style). '
+        'Only mention plot details you are certain about'
+        '\n- No translated English and no stiff or promotional wording: not "protagonist" (use "hoofdpersoon"), '
+        '"echoot", "resoneert", "fans van ... zullen waarderen", "past perfect bij", "dit boek biedt", '
+        '"dit boek combineert", "een must-read". Do not start with "Dit boek"'
+        '\n- Correct Dutch spelling: "te midden van", possessives without apostrophe ("Shannons verhaal"), '
+        '"een duidelijke parallel"'
+    ) if dutch else (
+        '\n- Keep the "reason" to one or two short sentences (at most 35 words) that name concretely what the '
+        'two books share. Only mention plot details you are certain about. No promotional wording'
+    )
+
     return f"""You are an expert book recommender with precise knowledge of published literature. \
 Recommend {n} books similar to the one below.
 
@@ -481,7 +497,7 @@ and only if they fit exceptionally well
 - Best match first
 - "year": year of first publication in the original language
 - "lang": original language as ISO 639-1 code
-- The "reason" field must be in {lang_name} (2-3 sentences explaining why this book fits)
+- The "reason" field must be in {lang_name} and explain why this book fits{reason_rules}
 
 Return ONLY a valid JSON array, no other text:
 [
