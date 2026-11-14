@@ -473,7 +473,17 @@ def _build_prompt(
         'Only mention plot details you are certain about'
         '\n- No translated English and no stiff or promotional wording: not "protagonist" (use "hoofdpersoon"), '
         '"echoot", "resoneert", "fans van ... zullen waarderen", "past perfect bij", "dit boek biedt", '
-        '"dit boek combineert", "een must-read". Do not start with "Dit boek"'
+        '"dit boek combineert", "een must-read", "Hoewel ouder, ...", "Bevat een ...", "Verhaalt over ...". '
+        'Do not start with "Dit boek"'
+        '\n- Vary how the reasons open. Across the whole list at most one reason may start with "Net als" '
+        'and at most one with "Beide" ("Beide boeken", "Beide verhalen", "Beide romans"). Other ways to open: '
+        'the thing the books share ("Dezelfde droge humor, maar dan in ..."), the author ("Koch laat een '
+        'etentje ontsporen ..."), "Ook hier ...", "Hier ..." or "Wie hield van ..., vindt hier ..."'
+        '\n- Every reason is a complete sentence with a subject. Never open with a bare verb such as '
+        '"Beschrijft", "Vertelt over", "Verhaalt over", "Behandelt", "Volgt", "Bevat" or "Combineert". '
+        'Use ordinary hyphens and no English words where a Dutch one exists'
+        '\n- Do not guess whether an author or a character is a man or a woman; leave "hij", "zij", "zijn" '
+        'and "haar" out when you are not certain'
         '\n- Correct Dutch spelling: "te midden van", possessives without apostrophe ("Shannons verhaal"), '
         '"een duidelijke parallel"'
     ) if dutch else (
@@ -526,6 +536,13 @@ Return ONLY a valid JSON array, no other text:
 
 
 LANG_NAMES = {'nl': 'Dutch', 'en': 'English'}
+
+
+def _clean_reason(reason) -> str:
+    """Uitleg van het model: alleen tekst, met gewone koppeltekens en spaties (het model gebruikt graag U+2011)."""
+    if not isinstance(reason, str):
+        return ''
+    return ' '.join(reason.replace('\u2011', '-').replace('\u00a0', ' ').split())
 
 
 def _plain(value, limit: int) -> str:
@@ -633,7 +650,7 @@ async def recommend(
             cover_url=meta.get('cover_url'),
             ol_key=meta.get('ol_key', ''),
             score=round(max(0.5, 1.0 - i * 0.04), 2),
-            explanation=item.get('reason', '') if isinstance(item.get('reason'), str) else '',
+            explanation=_clean_reason(item.get('reason')),
             year=_year(item, meta),
             dutch_title=dutch_title if dutch_title and _norm(dutch_title) != _norm(title) else None,
             original_language=lang_.strip().lower()[:2] or None,
