@@ -60,26 +60,44 @@ def _host_is(host: str, *domains: str) -> bool:
     return any(host == d or host.endswith('.' + d) for d in domains)
 
 
-async def _assert_public(url: str) -> None:
-    """Weiger alles wat niet naar een publiek internetadres wijst (SSRF): geen interne hosts, loopback of metadata-adressen."""
+async def _public_ip(url: str) -> str:
+    """
+    Het adres waar deze link naartoe wijst. Weigert alles wat niet publiek is (SSRF): geen interne hosts,
+    loopback of metadata-adressen.
+    """
     parts = urlsplit(url)
     if parts.scheme not in ('http', 'https') or not parts.hostname:
         raise ValueError('Deze link kunnen we niet gebruiken.')
     try:
         infos = await asyncio.get_running_loop().getaddrinfo(parts.hostname, parts.port or (443 if parts.scheme == 'https' else 80), type=socket.SOCK_STREAM)
-    except OSError:
+    except (OSError, ValueError):
         raise ValueError('Deze link kunnen we niet gebruiken.')
-    for info in infos:
-        ip = ipaddress.ip_address(info[4][0].split('%')[0])
-        if not ip.is_global:
-            raise ValueError('Deze link kunnen we niet gebruiken.')
+    ips = [ipaddress.ip_address(info[4][0].split('%')[0]) for info in infos]
+    if not ips or not all(ip.is_global for ip in ips):
+        raise ValueError('Deze link kunnen we niet gebruiken.')
+    # IPv4 eerst: binnen een container is IPv6 naar buiten vaak niet beschikbaar.
+    return str(sorted(ips, key=lambda ip: ip.version)[0])
 
 
 async def _get_public(client: httpx.AsyncClient, url: str, headers: dict) -> str:
-    """Haal een door de gebruiker opgegeven pagina op: elke redirect opnieuw gecontroleerd, met een limiet op de grootte."""
+    """
+    Haal een door de gebruiker opgegeven pagina op: elke redirect opnieuw gecontroleerd, met een limiet op de grootte.
+    We verbinden met het adres dat we zelf hebben gecontroleerd, niet opnieuw met de hostnaam: anders kan een
+    DNS-server bij de tweede keer opzoeken alsnog een intern adres teruggeven (DNS-rebinding).
+    Het certificaat wordt gewoon tegen de hostnaam gecontroleerd.
+    """
     for _ in range(_MAX_HOPS):
-        await _assert_public(url)
-        async with client.stream('GET', url, headers=headers, follow_redirects=False, timeout=15) as r:
+        ip = await _public_ip(url)
+        parts = urlsplit(url)
+        netloc = f'[{ip}]' if ':' in ip else ip
+        if parts.port:
+            netloc += f':{parts.port}'
+        pinned = parts._replace(netloc=netloc).geturl()
+        host = parts.hostname if not parts.port else f'{parts.hostname}:{parts.port}'
+        async with client.stream(
+            'GET', pinned, headers={**headers, 'Host': host}, follow_redirects=False, timeout=15,
+            extensions={'sni_hostname': parts.hostname},
+        ) as r:
             if r.is_redirect and r.headers.get('location'):
                 url = urljoin(url, r.headers['location'])
                 continue

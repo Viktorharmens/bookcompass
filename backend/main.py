@@ -13,9 +13,11 @@ Invoer voor /book-info en /recommend (veld "url") kan zijn:
   - Vrije tekst (boektitel)
 """
 
+import os
+import hmac
 import logging
 from typing import Literal
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 
@@ -33,6 +35,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Gedeelde sleutel met de site (daar ook ENGINE_API_KEY). Leeg = geen controle, zoals bij lokaal ontwikkelen.
+_API_KEY = os.getenv("ENGINE_API_KEY", "")
+
+if not _API_KEY:
+    log.warning("ENGINE_API_KEY is niet gezet: de API accepteert aanvragen van iedereen op het netwerk.")
+
+
+async def require_key(x_engine_key: str = Header(default="")) -> None:
+    if _API_KEY and not hmac.compare_digest(x_engine_key.encode(), _API_KEY.encode()):
+        raise HTTPException(status_code=401, detail="Geen toegang.")
 
 
 # ── Schema's ──────────────────────────────────────────────────────────────────
@@ -106,7 +120,7 @@ async def health():
     return {"status": "ok"}
 
 
-@app.post("/book-info", response_model=BookInfoResponse)
+@app.post("/book-info", response_model=BookInfoResponse, dependencies=[Depends(require_key)])
 async def get_book_info(req: BookInfoRequest):
     try:
         book = await fetch_book(req.url)
@@ -127,7 +141,7 @@ async def get_book_info(req: BookInfoRequest):
     )
 
 
-@app.post("/recommend", response_model=RecommendResponse)
+@app.post("/recommend", response_model=RecommendResponse, dependencies=[Depends(require_key)])
 async def get_recommendations(req: RecommendRequest):
     try:
         book = await fetch_book(req.url)
