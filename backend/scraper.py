@@ -14,9 +14,13 @@ Ondersteunde invoer:
 import os
 import re
 import json
+import socket
+import asyncio
 import logging
+import ipaddress
 import unicodedata
 import httpx
+from urllib.parse import urljoin, urlsplit
 from dataclasses import dataclass
 from dotenv import load_dotenv
 
@@ -41,18 +45,84 @@ class BookData:
     year: int | None
 
 
+_MAX_BODY = 2_000_000  # bytes; een productpagina is zelden groter dan een paar honderd kB
+_MAX_HOPS = 4
+
+
+def _host(url: str) -> str:
+    try:
+        return (urlsplit(url).hostname or '').lower()
+    except ValueError:
+        return ''
+
+
+def _host_is(host: str, *domains: str) -> bool:
+    return any(host == d or host.endswith('.' + d) for d in domains)
+
+
+async def _public_ip(url: str) -> str:
+    """
+    Het adres waar deze link naartoe wijst. Weigert alles wat niet publiek is (SSRF): geen interne hosts,
+    loopback of metadata-adressen.
+    """
+    parts = urlsplit(url)
+    if parts.scheme not in ('http', 'https') or not parts.hostname:
+        raise ValueError('Deze link kunnen we niet gebruiken.')
+    try:
+        infos = await asyncio.get_running_loop().getaddrinfo(parts.hostname, parts.port or (443 if parts.scheme == 'https' else 80), type=socket.SOCK_STREAM)
+    except (OSError, ValueError):
+        raise ValueError('Deze link kunnen we niet gebruiken.')
+    ips = [ipaddress.ip_address(info[4][0].split('%')[0]) for info in infos]
+    if not ips or not all(ip.is_global for ip in ips):
+        raise ValueError('Deze link kunnen we niet gebruiken.')
+    # IPv4 eerst: binnen een container is IPv6 naar buiten vaak niet beschikbaar.
+    return str(sorted(ips, key=lambda ip: ip.version)[0])
+
+
+async def _get_public(client: httpx.AsyncClient, url: str, headers: dict) -> str:
+    """
+    Haal een door de gebruiker opgegeven pagina op: elke redirect opnieuw gecontroleerd, met een limiet op de grootte.
+    We verbinden met het adres dat we zelf hebben gecontroleerd, niet opnieuw met de hostnaam: anders kan een
+    DNS-server bij de tweede keer opzoeken alsnog een intern adres teruggeven (DNS-rebinding).
+    Het certificaat wordt gewoon tegen de hostnaam gecontroleerd.
+    """
+    for _ in range(_MAX_HOPS):
+        ip = await _public_ip(url)
+        parts = urlsplit(url)
+        netloc = f'[{ip}]' if ':' in ip else ip
+        if parts.port:
+            netloc += f':{parts.port}'
+        pinned = parts._replace(netloc=netloc).geturl()
+        host = parts.hostname if not parts.port else f'{parts.hostname}:{parts.port}'
+        async with client.stream(
+            'GET', pinned, headers={**headers, 'Host': host}, follow_redirects=False, timeout=15,
+            extensions={'sni_hostname': parts.hostname},
+        ) as r:
+            if r.is_redirect and r.headers.get('location'):
+                url = urljoin(url, r.headers['location'])
+                continue
+            body = b''
+            async for chunk in r.aiter_bytes():
+                body += chunk
+                if len(body) > _MAX_BODY:
+                    break
+            return body[:_MAX_BODY].decode(r.encoding or 'utf-8', errors='replace')
+    raise ValueError('Deze link kunnen we niet gebruiken.')
+
+
 def _detect(text: str) -> str:
     t = text.strip()
     if re.fullmatch(r'OL\d+[WM]', t, re.I):
         return 'olid'
     if re.match(r'https?://', t):
-        if 'openlibrary.org' in t:
+        host = _host(t)
+        if _host_is(host, 'openlibrary.org'):
             return 'openlibrary'
-        if 'bol.com' in t:
+        if _host_is(host, 'bol.com'):
             return 'bol'
-        if re.search(r'amazon\.(com|nl|de|co\.uk|fr|it|es)', t):
+        if re.search(r'(^|\.)amazon\.(com|nl|de|co\.uk|fr|it|es)$', host):
             return 'amazon'
-        if 'goodreads.com' in t:
+        if _host_is(host, 'goodreads.com'):
             return 'goodreads'
         return 'url'
     isbn = re.sub(r'[-\s]', '', t)
@@ -348,8 +418,7 @@ async def _fetch_amazon(url: str, client: httpx.AsyncClient) -> BookData:
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     }
     try:
-        r = await client.get(url, headers=headers, follow_redirects=True, timeout=15)
-        html = r.text
+        html = await _get_public(client, url, headers)
 
         for ld_match in re.finditer(
             r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>', html, re.DOTALL
@@ -390,8 +459,7 @@ async def _fetch_goodreads(url: str, client: httpx.AsyncClient) -> BookData:
     headers = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     }
-    r = await client.get(url, headers=headers, follow_redirects=True, timeout=15)
-    html = r.text
+    html = await _get_public(client, url, headers)
 
     for ld_match in re.finditer(
         r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>', html, re.DOTALL
@@ -423,8 +491,7 @@ async def _fetch_url(url: str, client: httpx.AsyncClient) -> BookData:
     headers = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     }
-    r = await client.get(url, headers=headers, follow_redirects=True, timeout=15)
-    html = r.text
+    html = await _get_public(client, url, headers)
 
     for ld_match in re.finditer(
         r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>', html, re.DOTALL
